@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"microbroker-mqtt-edge/internal/mqtt"
+	"microbroker-mqtt-edge/internal/queue"
 	"net"
 )
 
@@ -68,6 +69,8 @@ func handleClient(conn net.Conn) {
 				log.Printf("❌ Failed to parse PUBLISH: %v", err)
 				continue
 			}
+			queue.Push([]byte(payload)) // 👈 Joga direto na fila
+
 			log.Printf("📤 [%s]: %s", topic, payload)
 
 		default:
