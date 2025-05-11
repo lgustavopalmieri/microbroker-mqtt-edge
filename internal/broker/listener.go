@@ -1,6 +1,7 @@
 package broker //  escuta conexões TCP
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"microbroker-mqtt-edge/internal/mqtt"
@@ -28,8 +29,11 @@ func ListenAndServe(addr string) error {
 
 func handleClient(conn net.Conn) {
 	defer conn.Close()
+	reader := bufio.NewReader(conn)
 
-	packetType, _, err := mqtt.ReadPacket(conn)
+	header, _, err := mqtt.ReadPacket(reader)
+	packetType := header >> 4
+
 	if err != nil {
 		log.Printf("❌ Failed to read packet: %v", err)
 		return
@@ -41,26 +45,33 @@ func handleClient(conn net.Conn) {
 	}
 
 	log.Println("✅ CONNECT received")
+	conn.Write([]byte{0x20, 0x02, 0x00, 0x00}) // CONNACK
 
-	// Envia CONNACK com sucesso
-	conn.Write([]byte{0x20, 0x02, 0x00, 0x00})
-
-	// ✅ Loop contínuo para manter conexão
 	for {
-		packetType, _, err := mqtt.ReadPacket(conn)
+		header, remLen, err := mqtt.ReadPacket(reader)
 		if err != nil {
 			log.Printf("🔌 Disconnected: %v", err)
 			return
 		}
 
+		packetType := header >> 4
+
 		switch packetType {
 		case mqtt.PacketPingreq:
-			// Responde com PINGRESP
 			conn.Write([]byte{0xD0, 0x00})
 			log.Println("📶 PINGREQ received → responded")
 
+		case mqtt.PacketPublish:
+			log.Printf("🧾 PUBLISH packet received — remaining length: %d", remLen)
+			topic, payload, err := mqtt.ReadPublish(reader, remLen, header)
+			if err != nil {
+				log.Printf("❌ Failed to parse PUBLISH: %v", err)
+				continue
+			}
+			log.Printf("📤 [%s]: %s", topic, payload)
+
 		default:
-			log.Printf("⚠️ Unhandled packet type: %d\n", packetType)
+			log.Printf("⚠️ Unhandled packet type: %d", packetType)
 		}
 	}
 }

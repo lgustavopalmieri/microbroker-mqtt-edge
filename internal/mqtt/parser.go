@@ -2,34 +2,77 @@ package mqtt // parse binário MQTT (CONNECT, PUBLISH, etc.)
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/binary"
 	"fmt"
-	"net"
+	"io"
 )
 
-func ReadPacket(conn net.Conn) (packetType byte, remaining int, err error) {
-	reader := bufio.NewReader(conn)
-
-	// First byte
+func ReadPacket(reader *bufio.Reader) (byte, int, error) {
 	header, err := reader.ReadByte()
 	if err != nil {
 		return 0, 0, fmt.Errorf("read header: %w", err)
 	}
 
-	packetType = header >> 4
-
-	// Remaining length (simplificado, max 1 byte por enquanto)
-	remainingByte, err := reader.ReadByte()
+	remLen, err := decodeRemainingLength(reader)
 	if err != nil {
 		return 0, 0, fmt.Errorf("read remaining length: %w", err)
 	}
-	remaining = int(remainingByte)
 
-	// Descarta payload (não tratamos ainda)
-	buf := make([]byte, remaining)
-	_, err = reader.Read(buf)
+	return header, remLen, nil
+}
+
+func ReadPublish(reader *bufio.Reader, remLen int, header byte) (string, string, error) {
+	buf := make([]byte, remLen)
+	n, err := io.ReadFull(reader, buf)
 	if err != nil {
-		return 0, 0, fmt.Errorf("read payload: %w", err)
+		return "", "", fmt.Errorf("read publish payload: %w (got %d bytes)", err, n)
 	}
 
-	return packetType, remaining, nil
+	msgReader := bytes.NewReader(buf)
+
+	var topicLen uint16
+	if err := binary.Read(msgReader, binary.BigEndian, &topicLen); err != nil {
+		return "", "", fmt.Errorf("read topic length: %w", err)
+	}
+
+	topic := make([]byte, topicLen)
+	if _, err := msgReader.Read(topic); err != nil {
+		return "", "", fmt.Errorf("read topic: %w", err)
+	}
+
+	// Se for QoS > 0, pula packet ID (2 bytes)
+	qos := (header >> 1) & 0x03
+	if qos > 0 {
+		var packetID uint16
+		if err := binary.Read(msgReader, binary.BigEndian, &packetID); err != nil {
+			return "", "", fmt.Errorf("read packet ID: %w", err)
+		}
+	}
+
+	payload := make([]byte, msgReader.Len())
+	if _, err := msgReader.Read(payload); err != nil {
+		return "", "", fmt.Errorf("read payload: %w", err)
+	}
+
+	return string(topic), string(payload), nil
+}
+
+func decodeRemainingLength(r *bufio.Reader) (int, error) {
+	multiplier := 1
+	value := 0
+
+	for i := 0; i < 4; i++ {
+		b, err := r.ReadByte()
+		if err != nil {
+			return 0, fmt.Errorf("error reading remaining length byte: %w", err)
+		}
+		value += int(b&127) * multiplier
+		if b&128 == 0 {
+			break
+		}
+		multiplier *= 128
+	}
+
+	return value, nil
 }
