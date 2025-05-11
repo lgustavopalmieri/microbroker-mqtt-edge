@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  microbroker-mqtt-edge:
+    build: .
+    container_name: microbroker-mqtt-edge
+    networks:
+      - prodiq-net
+    restart: no
+    env_file:
+      - .env
+    ports:
+      - "6081:6081"
+
+networks:
+  prodiq-net:
+    external: true
