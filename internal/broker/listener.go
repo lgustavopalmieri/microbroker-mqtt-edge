@@ -2,31 +2,11 @@ package broker //  escuta conexões TCP
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"microbroker-mqtt-edge/internal/mqtt"
 	"microbroker-mqtt-edge/internal/queue"
 	"net"
 )
-
-func ListenAndServe(addr string) error {
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		return fmt.Errorf("listen error: %w", err)
-	}
-
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			log.Printf("⚠️ Accept error: %v", err)
-			continue
-		}
-
-		log.Printf("📡 New connection from %s", conn.RemoteAddr())
-
-		go handleClient(conn)
-	}
-}
 
 func handleClient(conn net.Conn) {
 	defer conn.Close()
@@ -46,7 +26,10 @@ func handleClient(conn net.Conn) {
 	}
 
 	log.Println("✅ CONNECT received")
-	conn.Write([]byte{0x20, 0x02, 0x00, 0x00}) // CONNACK
+	if err := mqtt.SendConnack(conn); err != nil {
+		log.Printf("❌ Failed to send CONNACK: %v", err)
+		return
+	}
 
 	for {
 		header, remLen, err := mqtt.ReadPacket(reader)
@@ -59,17 +42,23 @@ func handleClient(conn net.Conn) {
 
 		switch packetType {
 		case mqtt.PacketPingreq:
-			conn.Write([]byte{0xD0, 0x00})
-			log.Println("📶 PINGREQ received → responded")
+			if err := mqtt.SendPingresp(conn); err != nil {
+				log.Printf("❌ Failed to send PINGRESP: %v", err)
+			} else {
+				log.Println("📶 PINGREQ received → responded")
+			}
 
 		case mqtt.PacketPublish:
-			log.Printf("🧾 PUBLISH packet received — remaining length: %d", remLen)
 			topic, payload, err := mqtt.ReadPublish(reader, remLen, header)
 			if err != nil {
 				log.Printf("❌ Failed to parse PUBLISH: %v", err)
 				continue
 			}
-			queue.Push([]byte(payload)) // 👈 Joga direto na fila
+
+			queue.Push(queue.InboundMessage{
+				Topic:   topic,
+				Payload: []byte(payload),
+			}) // Joga direto na fila
 
 			log.Printf("📤 [%s]: %s", topic, payload)
 
