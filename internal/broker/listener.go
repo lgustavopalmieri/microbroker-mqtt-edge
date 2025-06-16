@@ -1,4 +1,4 @@
-package broker //  escuta conexões TCP
+package broker // listen TCP connections
 
 import (
 	"bufio"
@@ -58,7 +58,7 @@ func handleClient(conn net.Conn) {
 			queue.Push(queue.InboundMessage{
 				Topic:   topic,
 				Payload: []byte(payload),
-			}) // Joga direto na fila
+			})
 
 			log.Printf("📤 [%s]: %s", topic, payload)
 

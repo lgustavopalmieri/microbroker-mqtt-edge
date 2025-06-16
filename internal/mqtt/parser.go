@@ -1,4 +1,4 @@
-package mqtt // parse binário MQTT (CONNECT, PUBLISH, etc.)
+package mqtt // parse MQTT binary (CONNECT, PUBLISH, etc.)
 
 import (
 	"bufio"
@@ -41,7 +41,7 @@ func ReadPublish(reader *bufio.Reader, remLen int, header byte) (string, string,
 		return "", "", fmt.Errorf("read topic: %w", err)
 	}
 
-	// Se for QoS > 0, pula packet ID (2 bytes)
+	// If QoS > 0, jump to packet ID (2 bytes)
 	qos := (header >> 1) & 0x03
 	if qos > 0 {
 		var packetID uint16

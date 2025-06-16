@@ -1,1 +1,1 @@
-package broker // representa cada conexão com cliente
+package broker // each client connection

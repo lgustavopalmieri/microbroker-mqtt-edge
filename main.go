@@ -9,9 +9,9 @@ import (
 func main() {
 	log.Println("🚀 Starting micromqttd on :6081...")
 
-	bufferSize := 100000
+	bufferSize := 10000
 	workers := 2
-	
+
 	queue.InitQueue(bufferSize)
 	queue.StartWorker(workers)
 
@@ -20,8 +20,3 @@ func main() {
 		log.Fatalf("❌ Broker error: %v", err)
 	}
 }
-
-// documentar muito top e vamos fazer TESTES!!!
-// fizemos os manuais agora mas vamos fazer escritos,
-// e também vamos fazer testes de disparar mensagens
-// concorrentes de 10 tópicos diferentes em 300 por segundo cada 1.

@@ -1,1 +1,1 @@
-package broker // roteia mensagens por tópico
+package broker // routing messages by topic
