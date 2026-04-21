@@ -37,13 +37,14 @@
 - Máximo 5 tópicos
 - 8 testes unitários + 2 testes de integração
 
-**F4: Data Ingestion Pipeline** - PLANNED
+**F4: Data Ingestion Pipeline** - COMPLETE ✅
 
 - Filas FIFO nativas por tópico (Go channels)
 - Consumer sequencial por fila
-- Persistência em SQLite (tabela raw_data)
-- Lock transacional para consistência
+- Persistência em SQLite (tabela raw_data) com modernc.org/sqlite (pure Go)
+- Lock transacional para consistência (mutex + WAL mode)
 - Backpressure natural via channels
+- 21 testes (6 unitários queue + 5 unitários pipeline + 10 integração SQLite)
 
 **F5: Worker Dispatch** - PLANNED
 

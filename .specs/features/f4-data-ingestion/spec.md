@@ -110,18 +110,18 @@ Após o broker receber dados via PUBLISH, precisamos garantir que cada mensagem 
 
 | Requirement ID | Story | Phase | Status |
 |---------------|-------|-------|--------|
-| INGEST-01 | P1: Entidade Message | Tasks | Pending |
-| INGEST-02 | P1: Fila FIFO | Tasks | Pending |
-| INGEST-03 | P1: SQLite Store | Tasks | Pending |
-| INGEST-04 | P1: Pipeline Orchestrator | Tasks | Pending |
+| INGEST-01 | P1: Entidade Message | Done | ✅ Verified |
+| INGEST-02 | P1: Fila FIFO | Done | ✅ Verified |
+| INGEST-03 | P1: SQLite Store | Done | ✅ Verified |
+| INGEST-04 | P1: Pipeline Orchestrator | Done | ✅ Verified |
 
-**Coverage:** 4 total, 4 mapped to tasks, 0 unmapped ✅
+**Coverage:** 4 total, 4 implemented, 4 verified ✅
 
 ---
 
 ## Success Criteria
 
-- [ ] Mensagens publicadas em tópicos diferentes são persistidas na ordem correta por tópico
-- [ ] SQLite contém todos os dados após 1000 PUBLISH rápidos
-- [ ] Backpressure funciona: fila cheia bloqueia o handler sem perder dados
-- [ ] Todos os testes passam com `go test -race ./internal/ingestion/...`
+- [x] Mensagens publicadas em tópicos diferentes são persistidas na ordem correta por tópico
+- [x] SQLite contém todos os dados após 1000 PUBLISH rápidos (testado com concurrent writes)
+- [x] Backpressure funciona: fila cheia bloqueia o handler sem perder dados
+- [x] Todos os testes passam com `go test -race ./internal/ingestion/...` (21 testes)

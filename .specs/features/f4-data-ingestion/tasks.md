@@ -1,7 +1,7 @@
 # F4: Data Ingestion Pipeline — Tasks
 
 **Spec**: `.specs/features/f4-data-ingestion/spec.md`
-**Status**: Draft
+**Status**: Done
 
 ---
 
