@@ -1,1 +1,0 @@
-package mqtt // serialize responses (CONNACK, SUBACK, etc.)
