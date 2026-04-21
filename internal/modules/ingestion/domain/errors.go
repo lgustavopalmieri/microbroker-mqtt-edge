@@ -8,7 +8,4 @@ var (
 
 	// ErrQueueFull indicates the topic queue buffer is full (backpressure).
 	ErrQueueFull = errors.New("ingestion: queue full")
-
-	// ErrMigrationFailed indicates the database migration failed.
-	ErrMigrationFailed = errors.New("ingestion: migration failed")
 )

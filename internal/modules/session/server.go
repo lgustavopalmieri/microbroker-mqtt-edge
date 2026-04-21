@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"microbroker-mqtt-edge/internal/session/domain"
+	"microbroker-mqtt-edge/internal/modules/session/domain"
 )
 
 // Message represents a data point received from a client via PUBLISH.

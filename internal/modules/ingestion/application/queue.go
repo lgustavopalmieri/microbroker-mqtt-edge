@@ -1,9 +1,9 @@
-package ingestion
+package application
 
 import (
 	"context"
 
-	"microbroker-mqtt-edge/internal/ingestion/domain"
+	"microbroker-mqtt-edge/internal/modules/ingestion/domain"
 )
 
 // Queue is a FIFO queue for a single topic, backed by a Go channel.

@@ -3,7 +3,7 @@ package session
 import (
 	"sync"
 
-	"microbroker-mqtt-edge/internal/session/domain"
+	"microbroker-mqtt-edge/internal/modules/session/domain"
 )
 
 // ConnectionManager tracks active client connections with a configurable limit.

@@ -1,9 +1,9 @@
-package ingestion
+package application
 
 import (
 	"context"
 
-	"microbroker-mqtt-edge/internal/ingestion/domain"
+	"microbroker-mqtt-edge/internal/modules/ingestion/domain"
 )
 
 // Pipeline orchestrates the FIFO queues and routes messages from the input channel

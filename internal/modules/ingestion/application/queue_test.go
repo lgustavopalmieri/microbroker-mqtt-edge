@@ -1,4 +1,4 @@
-package ingestion
+package application
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"microbroker-mqtt-edge/internal/ingestion/domain"
+	"microbroker-mqtt-edge/internal/modules/ingestion/domain"
 )
 
 // --- Mock Store for Queue Tests ---
@@ -21,8 +21,6 @@ type mockStore struct {
 	saveErr error
 	saveFn  func(domain.Message) error // optional custom behavior
 }
-
-func (m *mockStore) Migrate(_ context.Context) error { return nil }
 
 func (m *mockStore) SaveRawData(_ context.Context, msg domain.Message) error {
 	m.mu.Lock()

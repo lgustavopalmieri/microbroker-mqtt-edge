@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"microbroker-mqtt-edge/internal/protocol"
-	"microbroker-mqtt-edge/internal/session/domain"
+	"microbroker-mqtt-edge/internal/modules/protocol"
+	"microbroker-mqtt-edge/internal/modules/session/domain"
 )
 
 // --- Test helpers ---

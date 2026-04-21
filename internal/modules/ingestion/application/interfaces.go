@@ -1,17 +1,14 @@
-package ingestion
+package application
 
 import (
 	"context"
 
-	"microbroker-mqtt-edge/internal/ingestion/domain"
+	"microbroker-mqtt-edge/internal/modules/ingestion/domain"
 )
 
 // Store defines the persistence contract for the ingestion pipeline.
 // Implementations must be safe for concurrent use from multiple queue consumers.
 type Store interface {
-	// Migrate creates or updates the database schema.
-	Migrate(ctx context.Context) error
-
 	// SaveRawData persists a single message atomically.
 	// Must be safe for concurrent calls (implementations should serialize internally).
 	SaveRawData(ctx context.Context, msg domain.Message) error
@@ -20,7 +17,7 @@ type Store interface {
 	// Primarily used for testing and debugging.
 	GetByTopic(ctx context.Context, topic string) ([]domain.Message, error)
 
-	// Close releases all database resources.
+	// Close releases adapter-specific resources (may be no-op if connection is shared).
 	Close() error
 }
 

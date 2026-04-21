@@ -5,8 +5,8 @@ import (
 	"net"
 	"time"
 
-	"microbroker-mqtt-edge/internal/protocol"
-	"microbroker-mqtt-edge/internal/session/domain"
+	"microbroker-mqtt-edge/internal/modules/protocol"
+	"microbroker-mqtt-edge/internal/modules/session/domain"
 )
 
 const connectTimeout = 5 * time.Second
