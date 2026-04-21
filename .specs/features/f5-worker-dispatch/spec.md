@@ -100,4 +100,4 @@ Após cada mensagem ser persistida no SQLite, ela precisa ser distribuída para 
 - [ ] Mensagem persistida aparece no log do Logger Worker
 - [ ] Múltiplos workers recebem a mesma mensagem
 - [ ] Falha de um worker não afeta os outros
-- [ ] Todos os testes passam com `go test -race ./internal/dispatch/...`
+- [ ] Todos os testes passam com `go test -race ./internal/modules/dispatch/...`

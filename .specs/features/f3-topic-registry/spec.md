@@ -42,7 +42,7 @@ O broker precisa aceitar dados apenas em tópicos pré-definidos por variável d
 7. WHEN tópicos têm espaços extras THEN devem ser trimados ✅
 8. WHEN listo os tópicos THEN todos devem ser retornados ✅
 
-**Independent Test**: 8 testes unitários passando em `internal/session/domain/topic_registry_test.go`
+**Independent Test**: 8 testes unitários passando em `internal/modules/session/domain/topic_registry_test.go`
 
 ---
 
@@ -56,16 +56,16 @@ O broker precisa aceitar dados apenas em tópicos pré-definidos por variável d
 2. WHEN client publica em tópico não permitido THEN mensagem é ignorada ✅
 3. WHEN client publica QoS 1 em tópico não permitido THEN PUBACK é enviado (evita retries) ✅
 
-**Independent Test**: Testado em `internal/session/handler_test.go` (TestHandler_PublishDisallowedTopic)
+**Independent Test**: Testado em `internal/modules/session/handler_test.go` (TestHandler_PublishDisallowedTopic)
 
 ---
 
 ## Implementation Note
 
 F3 foi implementada como parte de F2 (Session Management) por ser um value object do domínio de sessão:
-- `internal/session/domain/topic_registry.go` — TopicRegistry struct com NewTopicRegistry, IsAllowed, Topics
-- `internal/session/domain/topic_registry_test.go` — 8 testes unitários
-- `internal/session/handler.go` — Validação no handlePublish e handleSubscribe
+- `internal/modules/session/domain/topic_registry.go` — TopicRegistry struct com NewTopicRegistry, IsAllowed, Topics
+- `internal/modules/session/domain/topic_registry_test.go` — 8 testes unitários
+- `internal/modules/session/handler.go` — Validação no handlePublish e handleSubscribe
 
 Não justificava um módulo separado — é um value object coeso com o domínio de sessão.
 
@@ -87,4 +87,4 @@ Não justificava um módulo separado — é um value object coeso com o domínio
 - [x] TopicRegistry criado com validação completa (1-5 tópicos, sem vazios, trim)
 - [x] PUBLISH em tópico não permitido é ignorado silenciosamente
 - [x] SUBSCRIBE em tópico não permitido retorna failure code (0x80)
-- [x] 8 testes unitários passando com `go test -race ./internal/session/domain/...`
+- [x] 8 testes unitários passando com `go test -race ./internal/modules/session/domain/...`

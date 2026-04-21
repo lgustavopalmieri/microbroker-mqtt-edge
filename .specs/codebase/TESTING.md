@@ -12,7 +12,7 @@
 
 | Gate | Command | When to use |
 |------|---------|-------------|
-| quick | `go build ./... && go vet ./... && go test ./internal/protocol/...` | Após mudanças em um pacote |
+| quick | `go build ./... && go vet ./... && go test ./internal/modules/protocol/...` | Após mudanças em um pacote |
 | full | `go build ./... && go vet ./... && go test -race ./... && golangci-lint run ./...` | Antes de commit |
 | build | `go build ./...` | Verificação rápida de compilação |
 
@@ -20,20 +20,20 @@
 
 | Code Layer | Location | Required Test Type | Parallel-Safe |
 |-----------|----------|-------------------|---------------|
-| Protocol types/constants | `internal/protocol/` | unit | Yes |
-| Protocol decoder | `internal/protocol/` | unit | Yes |
-| Protocol encoder | `internal/protocol/` | unit | Yes |
-| Session domain (Client, TopicRegistry) | `internal/session/domain/` | unit | Yes |
-| Auth | `internal/session/` | unit | Yes |
-| Connection Manager | `internal/session/` | unit | Yes |
-| TCP Server + Handler | `internal/session/` | integration | No |
-| Ingestion domain (Message) | `internal/ingestion/domain/` | unit | Yes |
-| Queue (FIFO) | `internal/ingestion/` | unit | Yes |
-| Pipeline | `internal/ingestion/` | unit | Yes |
-| SQLite Store | `internal/ingestion/store/` | integration | No |
-| Worker interface | `internal/dispatch/domain/` | none | Yes |
-| Dispatcher | `internal/dispatch/` | unit | Yes |
-| Logger Worker | `internal/dispatch/workers/` | unit | Yes |
+| Protocol types/constants | `internal/modules/protocol/` | unit | Yes |
+| Protocol decoder | `internal/modules/protocol/` | unit | Yes |
+| Protocol encoder | `internal/modules/protocol/` | unit | Yes |
+| Session domain (Client, TopicRegistry) | `internal/modules/session/domain/` | unit | Yes |
+| Auth | `internal/modules/session/` | unit | Yes |
+| Connection Manager | `internal/modules/session/` | unit | Yes |
+| TCP Server + Handler | `internal/modules/session/` | integration | No |
+| Ingestion domain (Message) | `internal/modules/ingestion/domain/` | unit | Yes |
+| Queue (FIFO) | `internal/modules/ingestion/application/` | unit | Yes |
+| Pipeline | `internal/modules/ingestion/application/` | unit | Yes |
+| SQLite Store | `internal/modules/ingestion/adapters/outbound/database/` | integration | No |
+| Worker interface | `internal/modules/dispatch/domain/` | none | Yes |
+| Dispatcher | `internal/modules/dispatch/` | unit | Yes |
+| Logger Worker | `internal/modules/dispatch/workers/` | unit | Yes |
 | Config | `internal/config/` | unit | Yes |
 | Bootstrap (main.go) | `cmd/` | build | No |
 

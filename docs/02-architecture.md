@@ -65,52 +65,63 @@ microbroker-mqtt-edge/
 │   ├── config/                          # Configuração (env vars)
 │   │   └── config.go
 │   │
-│   ├── protocol/                        # Módulo: MQTT Protocol (puro, sem I/O)
-│   │   ├── packet.go                    # Tipos de pacotes e constantes
-│   │   ├── decoder.go                   # Parsing de bytes → structs
-│   │   ├── encoder.go                   # Building de structs → bytes
-│   │   ├── errors.go                    # Erros do protocolo
-│   │   ├── packet_test.go
-│   │   ├── decoder_test.go
-│   │   └── encoder_test.go
+│   ├── modules/
+│   │   ├── protocol/                    # Módulo: MQTT Protocol (puro, sem I/O)
+│   │   │   ├── packet.go               # Tipos de pacotes e constantes
+│   │   │   ├── decoder.go              # Parsing de bytes → structs
+│   │   │   ├── encoder.go              # Building de structs → bytes
+│   │   │   ├── errors.go               # Erros do protocolo
+│   │   │   ├── packet_test.go
+│   │   │   ├── decoder_test.go
+│   │   │   └── encoder_test.go
+│   │   │
+│   │   ├── session/                     # Módulo: Connection/Session Management
+│   │   │   ├── domain/
+│   │   │   │   ├── client.go            # Entidade Client
+│   │   │   │   ├── errors.go            # Erros de domínio
+│   │   │   │   └── topic_registry.go    # Value Object: registro de tópicos
+│   │   │   ├── server.go               # TCP listener + accept loop
+│   │   │   ├── handler.go              # Packet handler (orquestra protocol)
+│   │   │   ├── auth.go                 # Autenticação
+│   │   │   ├── connection_manager.go   # Controle de max clients
+│   │   │   ├── interfaces.go           # Ports (contratos)
+│   │   │   ├── server_test.go
+│   │   │   ├── handler_test.go
+│   │   │   ├── auth_test.go
+│   │   │   └── connection_manager_test.go
+│   │   │
+│   │   ├── ingestion/                   # Módulo: Data Ingestion Pipeline
+│   │   │   ├── domain/
+│   │   │   │   ├── message.go           # Entidade Message
+│   │   │   │   └── errors.go           # Erros de domínio
+│   │   │   ├── application/
+│   │   │   │   ├── queue.go            # Fila FIFO por tópico
+│   │   │   │   ├── pipeline.go         # Orquestrador das filas
+│   │   │   │   ├── interfaces.go       # Ports (Store interface)
+│   │   │   │   ├── queue_test.go
+│   │   │   │   └── pipeline_test.go
+│   │   │   └── adapters/
+│   │   │       └── outbound/
+│   │   │           └── database/
+│   │   │               ├── repository.go      # Adapter: SQLite implementation
+│   │   │               └── repository_test.go
+│   │   │
+│   │   └── dispatch/                    # Módulo: Worker Dispatch
+│   │       ├── domain/
+│   │       │   └── worker.go            # Interface Worker
+│   │       ├── dispatcher.go            # Fan-out dispatcher
+│   │       ├── interfaces.go            # Ports
+│   │       ├── dispatcher_test.go
+│   │       └── workers/                 # Implementações de workers
+│   │           ├── logger_worker.go     # Worker de log (debug/dev)
+│   │           └── logger_worker_test.go
 │   │
-│   ├── session/                         # Módulo: Connection/Session Management
-│   │   ├── domain/
-│   │   │   ├── client.go                # Entidade Client
-│   │   │   ├── errors.go               # Erros de domínio
-│   │   │   └── topic_registry.go        # Value Object: registro de tópicos
-│   │   ├── server.go                    # TCP listener + accept loop
-│   │   ├── handler.go                   # Packet handler (orquestra protocol)
-│   │   ├── auth.go                      # Autenticação
-│   │   ├── connection_manager.go        # Controle de max clients
-│   │   ├── interfaces.go               # Ports (contratos)
-│   │   ├── server_test.go
-│   │   ├── handler_test.go
-│   │   ├── auth_test.go
-│   │   └── connection_manager_test.go
-│   │
-│   ├── ingestion/                       # Módulo: Data Ingestion Pipeline
-│   │   ├── domain/
-│   │   │   ├── message.go               # Entidade Message
-│   │   │   └── errors.go               # Erros de domínio
-│   │   ├── queue.go                     # Fila FIFO por tópico
-│   │   ├── pipeline.go                  # Orquestrador das filas
-│   │   ├── interfaces.go               # Ports (Store interface)
-│   │   ├── store/
-│   │   │   ├── sqlite.go               # Adapter: SQLite implementation
-│   │   │   └── sqlite_test.go
-│   │   ├── queue_test.go
-│   │   └── pipeline_test.go
-│   │
-│   ├── dispatch/                        # Módulo: Worker Dispatch
-│   │   ├── domain/
-│   │   │   └── worker.go               # Interface Worker
-│   │   ├── dispatcher.go               # Fan-out dispatcher
-│   │   ├── interfaces.go               # Ports
-│   │   ├── dispatcher_test.go
-│   │   └── workers/                     # Implementações de workers
-│   │       ├── logger_worker.go         # Worker de log (debug/dev)
-│   │       └── logger_worker_test.go
+│   ├── platform/                        # Infrastructure adapters
+│   │   └── database/                    # Database infrastructure (migrations, connection)
+│   │       ├── sqlite.go
+│   │       ├── migrator.go
+│   │       └── migrations/
+│   │           └── 001_create_raw_data.sql
 │   │
 │   └── common/                          # Shared: interfaces e helpers
 │       ├── logger.go                    # Interface de logging
@@ -161,7 +172,7 @@ Regras rígidas:
 Cada módulo define suas interfaces (ports) em `interfaces.go`:
 
 ```go
-// internal/ingestion/interfaces.go
+// internal/modules/ingestion/application/interfaces.go
 package ingestion
 
 import "context"
@@ -179,7 +190,7 @@ type MessageSource interface {
 ```
 
 ```go
-// internal/dispatch/interfaces.go
+// internal/modules/dispatch/interfaces.go
 package dispatch
 
 import "context"
@@ -226,8 +237,8 @@ Cada camada é testável isoladamente:
 | `protocol/` | Testes unitários puros: bytes in → struct out, struct in → bytes out |
 | `session/domain/` | Testes unitários: validações, regras de negócio |
 | `session/` | Testes com `net.Pipe()` para simular TCP sem rede real |
-| `ingestion/queue` | Testes com channels: enqueue/dequeue, ordem, backpressure |
-| `ingestion/store/sqlite` | Testes de integração com SQLite in-memory (`:memory:`) |
+| `ingestion/application/queue` | Testes com channels: enqueue/dequeue, ordem, backpressure |
+| `ingestion/adapters/outbound/database` | Testes de integração com SQLite in-memory (`:memory:`) |
 | `dispatch/` | Testes com mock workers (gomock) |
 
 ## 5. Detalhamento dos Módulos
@@ -640,7 +651,8 @@ Cada mensagem persistida é enviada para todos os workers simultaneamente via go
 | `session/domain/` | Validações de client, topic registry | Table-driven tests |
 | `session/auth` | Autenticação válida/inválida | Table-driven tests |
 | `session/connection_manager` | Add/Remove/CanAccept, limite de clients | Concurrency tests |
-| `ingestion/queue` | Enqueue/dequeue, ordem FIFO, backpressure | Channel-based tests |
+| `ingestion/application/queue` | Enqueue/dequeue, ordem FIFO, backpressure | Channel-based tests |
+| `ingestion/adapters/outbound/database` | Insert + query de raw_data | SQLite `:memory:` |
 | `dispatch/dispatcher` | Fan-out para N workers, error handling | Mock workers (gomock) |
 
 ### 7.2 Testes de Integração
@@ -727,10 +739,10 @@ import (
     "syscall"
 
     "microbroker-mqtt-edge/internal/config"
-    "microbroker-mqtt-edge/internal/dispatch"
-    "microbroker-mqtt-edge/internal/ingestion"
-    "microbroker-mqtt-edge/internal/ingestion/store"
-    "microbroker-mqtt-edge/internal/session"
+    "microbroker-mqtt-edge/internal/modules/dispatch"
+    "microbroker-mqtt-edge/internal/modules/ingestion"
+    "microbroker-mqtt-edge/internal/modules/ingestion/adapters/outbound/database"
+    "microbroker-mqtt-edge/internal/modules/session"
 )
 
 func main() {
@@ -753,7 +765,7 @@ func main() {
     signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
     // 5. SQLite Store
-    sqliteStore, err := store.NewSQLiteStore(cfg.DBPath)
+    sqliteStore, err := database.NewSQLiteStore(cfg.DBPath)
     if err != nil {
         slog.Error("failed to create store", "error", err)
         os.Exit(1)

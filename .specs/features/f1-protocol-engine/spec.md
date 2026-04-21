@@ -204,5 +204,5 @@ Precisamos de um engine de parsing e encoding de pacotes MQTT 3.1.1 que opere so
 
 - [x] Qualquer client MQTT 3.1.1 (mosquitto_pub, Node-RED, paho) consegue completar handshake CONNECT/CONNACK
 - [x] Pacotes PUBLISH são parseados corretamente com payload intacto
-- [x] Todos os testes unitários passam com `go test -race ./internal/protocol/...` (68 testes)
+- [x] Todos os testes unitários passam com `go test -race ./internal/modules/protocol/...` (68 testes)
 - [x] Zero dependências externas no pacote protocol

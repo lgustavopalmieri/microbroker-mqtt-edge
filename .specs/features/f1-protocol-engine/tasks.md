@@ -41,7 +41,7 @@ T7 → T8
 ### T1: Tipos, Constantes e Erros do Protocolo ✅
 
 **What**: Criar o pacote `internal/protocol` com todos os tipos, constantes e erros do MQTT 3.1.1.
-**Where**: `internal/protocol/packet.go`, `internal/protocol/errors.go`
+**Where**: `internal/modules/protocol/packet.go`, `internal/modules/protocol/errors.go`
 **Depends on**: None
 **Reuses**: Nenhum código existente
 **Requirement**: PROTO-01
@@ -56,7 +56,7 @@ T7 → T8
 - [x] `SubscribePacket` struct com PacketID e slice de Subscription
 - [x] Erros sentinela: `ErrMalformedRemainingLength`, `ErrInvalidProtocol`, `ErrInvalidPacketType`, `ErrInvalidQoS`, `ErrEmptyPayload`, `ErrTruncatedData`
 - [x] Métodos helper em ConnectPacket: `HasUsername()`, `HasPassword()`, `HasWill()`, `IsCleanSession()`, `WillQoS()`, `WillRetain()`
-- [x] Gate check passes: `go build ./internal/protocol/...`
+- [x] Gate check passes: `go build ./internal/modules/protocol/...`
 
 **Tests**: unit
 **Gate**: build
@@ -66,7 +66,7 @@ T7 → T8
 ### T2: Remaining Length Codec ✅
 
 **What**: Implementar encode e decode do campo Remaining Length com variable-length encoding.
-**Where**: `internal/protocol/codec.go`, `internal/protocol/codec_test.go`
+**Where**: `internal/modules/protocol/codec.go`, `internal/modules/protocol/codec_test.go`
 **Depends on**: T1
 **Reuses**: Nenhum
 
@@ -79,7 +79,7 @@ T7 → T8
 - [x] Testes cobrindo: 1 byte (0, 64, 127), 2 bytes (128, 321, 16383), 3 bytes (16384, 2097151), 4 bytes (2097152, 268435455)
 - [x] Teste de erro: mais de 4 bytes → `ErrMalformedRemainingLength`
 - [x] Teste de roundtrip: encode → decode para todos os valores de boundary
-- [x] Gate check passes: `go test -race ./internal/protocol/...`
+- [x] Gate check passes: `go test -race ./internal/modules/protocol/...`
 - [x] Test count: 23 tests pass ✅
 
 **Tests**: unit
@@ -90,7 +90,7 @@ T7 → T8
 ### T3: UTF-8 String Codec ✅
 
 **What**: Implementar leitura e escrita de strings UTF-8 no formato MQTT (2 bytes length prefix + conteúdo).
-**Where**: `internal/protocol/codec.go` (append), `internal/protocol/codec_test.go` (append)
+**Where**: `internal/modules/protocol/codec.go` (append), `internal/modules/protocol/codec_test.go` (append)
 **Depends on**: T2
 **Reuses**: Nenhum
 
@@ -104,7 +104,7 @@ T7 → T8
 - [x] Testes cobrindo: string vazia, string curta, string com caracteres UTF-8 multibyte, string longa
 - [x] Teste de erro: reader com bytes insuficientes
 - [x] Teste de roundtrip: write → read
-- [x] Gate check passes: `go test -race ./internal/protocol/...`
+- [x] Gate check passes: `go test -race ./internal/modules/protocol/...`
 - [x] Test count: 10 tests pass (novos) ✅
 
 **Tests**: unit
@@ -115,7 +115,7 @@ T7 → T8
 ### T4: CONNECT Packet Decoder ✅
 
 **What**: Implementar o decoder do pacote CONNECT que extrai todos os campos do variable header e payload.
-**Where**: `internal/protocol/decoder.go`, `internal/protocol/decoder_test.go`
+**Where**: `internal/modules/protocol/decoder.go`, `internal/modules/protocol/decoder_test.go`
 **Depends on**: T3
 **Reuses**: `ReadUTF8String`, `ReadBinaryData` de T3
 
@@ -134,7 +134,7 @@ T7 → T8
 - [x] Extrai Username (se Username Flag)
 - [x] Extrai Password (se Password Flag)
 - [x] Testes: connect válido com auth, connect sem auth, connect com will, protocol name inválido, protocol level inválido, reserved bit inválido, dados truncados
-- [x] Gate check passes: `go test -race ./internal/protocol/...`
+- [x] Gate check passes: `go test -race ./internal/modules/protocol/...`
 - [x] Test count: 8 tests pass ✅
 
 **Tests**: unit
@@ -145,7 +145,7 @@ T7 → T8
 ### T5: PUBLISH Packet Decoder ✅
 
 **What**: Implementar o decoder do pacote PUBLISH que extrai tópico, payload, QoS e PacketID.
-**Where**: `internal/protocol/decoder.go` (append), `internal/protocol/decoder_test.go` (append)
+**Where**: `internal/modules/protocol/decoder.go` (append), `internal/modules/protocol/decoder_test.go` (append)
 **Depends on**: T3
 **Reuses**: `ReadUTF8String` de T3
 
@@ -161,7 +161,7 @@ T7 → T8
 - [x] Valida QoS != 3
 - [x] Valida TopicName não vazio
 - [x] Testes: QoS 0 sem PacketID, QoS 1 com PacketID, QoS inválido (3), tópico vazio, payload vazio (válido), dados truncados
-- [x] Gate check passes: `go test -race ./internal/protocol/...`
+- [x] Gate check passes: `go test -race ./internal/modules/protocol/...`
 - [x] Test count: 6 tests pass ✅
 
 **Tests**: unit
@@ -172,7 +172,7 @@ T7 → T8
 ### T6: SUBSCRIBE Packet Decoder ✅
 
 **What**: Implementar o decoder do pacote SUBSCRIBE que extrai PacketID e lista de subscriptions.
-**Where**: `internal/protocol/decoder.go` (append), `internal/protocol/decoder_test.go` (append)
+**Where**: `internal/modules/protocol/decoder.go` (append), `internal/modules/protocol/decoder_test.go` (append)
 **Depends on**: T3
 **Reuses**: `ReadUTF8String` de T3
 
@@ -186,7 +186,7 @@ T7 → T8
 - [x] Valida payload não vazio
 - [x] Valida QoS de cada subscription (0, 1 ou 2)
 - [x] Testes: 1 subscription, múltiplas subscriptions, payload vazio, QoS inválido
-- [x] Gate check passes: `go test -race ./internal/protocol/...`
+- [x] Gate check passes: `go test -race ./internal/modules/protocol/...`
 - [x] Test count: 4 tests pass ✅
 
 **Tests**: unit
@@ -197,7 +197,7 @@ T7 → T8
 ### T7: Encoder de Respostas do Servidor ✅
 
 **What**: Implementar encoders para CONNACK, PUBACK, SUBACK e PINGRESP.
-**Where**: `internal/protocol/encoder.go`, `internal/protocol/encoder_test.go`
+**Where**: `internal/modules/protocol/encoder.go`, `internal/modules/protocol/encoder_test.go`
 **Depends on**: T4, T5, T6 (para validar que os tipos estão corretos)
 **Reuses**: `EncodeRemainingLength` de T2
 
@@ -213,7 +213,7 @@ T7 → T8
 - [x] Testes byte-a-byte: PUBACK com PacketID=10 [0x40,0x02,0x00,0x0A]
 - [x] Testes byte-a-byte: SUBACK com 1 e 2 return codes
 - [x] Testes byte-a-byte: PINGRESP [0xD0,0x00]
-- [x] Gate check passes: `go test -race ./internal/protocol/...`
+- [x] Gate check passes: `go test -race ./internal/modules/protocol/...`
 - [x] Test count: 16 tests pass ✅
 
 **Tests**: unit
@@ -224,7 +224,7 @@ T7 → T8
 ### T8: Fixed Header Reader (Packet Reader) ✅
 
 **What**: Implementar o reader de alto nível que lê o fixed header + remaining bytes de qualquer pacote MQTT de um io.Reader.
-**Where**: `internal/protocol/reader.go`, `internal/protocol/reader_test.go`
+**Where**: `internal/modules/protocol/reader.go`, `internal/modules/protocol/reader_test.go`
 **Depends on**: T7
 **Reuses**: `DecodeRemainingLength` de T2
 
@@ -238,7 +238,7 @@ T7 → T8
 - [x] Lê exatamente `remainingLength` bytes do reader
 - [x] Valida PacketType != 0 e != 15 (reserved)
 - [x] Testes: CONNECT completo, PUBLISH completo, PINGREQ (0 bytes remaining), DISCONNECT, packet type inválido (0, 15), EOF no primeiro byte, EOF no remaining length, EOF no body
-- [x] Gate check passes: `go test -race ./internal/protocol/...`
+- [x] Gate check passes: `go test -race ./internal/modules/protocol/...`
 - [x] Test count: 8 tests pass ✅
 
 **Tests**: unit

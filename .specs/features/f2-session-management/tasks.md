@@ -37,155 +37,155 @@ T5 → T6
 
 ## Task Breakdown
 
-### T1: Entidade Client e Erros de Domínio
+### T1: Entidade Client e Erros de Domínio ✅
 
 **What**: Criar a entidade Client com metadados de conexão e erros de domínio do módulo session.
-**Where**: `internal/session/domain/client.go`, `internal/session/domain/errors.go`, `internal/session/domain/client_test.go`
+**Where**: `internal/modules/session/domain/client.go`, `internal/modules/session/domain/errors.go`, `internal/modules/session/domain/client_test.go`
 **Depends on**: F1 completa (usa `protocol` para tipos)
 **Reuses**: Nenhum
 **Requirement**: SESS-01
 
 **Done when**:
 
-- [ ] `Client` struct com ID, Conn (net.Conn), KeepAlive, CreatedAt, LastSeen
-- [ ] `NewClient(id string, conn net.Conn, keepAlive uint16) *Client`
-- [ ] `ResetDeadline()` atualiza deadline da conn para `now + 1.5 * keepAlive`
-- [ ] `Write(data []byte) error` escreve na conn
-- [ ] `Close() error` fecha a conn
-- [ ] Erros: `ErrMaxClientsReached`, `ErrClientAlreadyExists`, `ErrAuthFailed`, `ErrConnectionTimeout`
-- [ ] Testes com `net.Pipe()`: ResetDeadline, Write, Close
-- [ ] Gate check passes: `go test -race ./internal/session/...`
-- [ ] Test count: ≥4 tests pass
+- [x] `Client` struct com ID, Conn (net.Conn), KeepAlive, CreatedAt, LastSeen
+- [x] `NewClient(id string, conn net.Conn, keepAlive uint16) *Client`
+- [x] `ResetDeadline()` atualiza deadline da conn para `now + 1.5 * keepAlive`
+- [x] `Write(data []byte) error` escreve na conn
+- [x] `Close() error` fecha a conn
+- [x] Erros: `ErrMaxClientsReached`, `ErrClientAlreadyExists`, `ErrAuthFailed`, `ErrConnectionTimeout`
+- [x] Testes com `net.Pipe()`: ResetDeadline, Write, Close
+- [x] Gate check passes: `go test -race ./internal/modules/session/...`
+- [x] Test count: ≥4 tests pass
 
 **Tests**: unit
 **Gate**: quick
 
 ---
 
-### T2: Topic Registry (Value Object)
+### T2: Topic Registry (Value Object) ✅
 
 **What**: Criar o TopicRegistry que valida e armazena os tópicos permitidos pelo broker.
-**Where**: `internal/session/domain/topic_registry.go`, `internal/session/domain/topic_registry_test.go`
+**Where**: `internal/modules/session/domain/topic_registry.go`, `internal/modules/session/domain/topic_registry_test.go`
 **Depends on**: T1
 **Reuses**: Nenhum
 **Requirement**: SESS-01 (parte do domínio)
 
 **Done when**:
 
-- [ ] `TopicRegistry` struct com mapa de tópicos permitidos
-- [ ] `NewTopicRegistry(topics []string) (*TopicRegistry, error)` com validação (1-5 tópicos, sem vazios)
-- [ ] `IsAllowed(topic string) bool`
-- [ ] `Topics() []string`
-- [ ] Erro se 0 tópicos, erro se >5 tópicos, erro se tópico vazio
-- [ ] Testes: criação válida, 0 tópicos, 6 tópicos, tópico vazio, IsAllowed true/false, Topics retorna todos
-- [ ] Gate check passes: `go test -race ./internal/session/...`
-- [ ] Test count: ≥6 tests pass (novos)
+- [x] `TopicRegistry` struct com mapa de tópicos permitidos
+- [x] `NewTopicRegistry(topics []string) (*TopicRegistry, error)` com validação (1-5 tópicos, sem vazios)
+- [x] `IsAllowed(topic string) bool`
+- [x] `Topics() []string`
+- [x] Erro se 0 tópicos, erro se >5 tópicos, erro se tópico vazio
+- [x] Testes: criação válida, 0 tópicos, 6 tópicos, tópico vazio, IsAllowed true/false, Topics retorna todos
+- [x] Gate check passes: `go test -race ./internal/modules/session/...`
+- [x] Test count: ≥6 tests pass (novos)
 
 **Tests**: unit
 **Gate**: quick
 
 ---
 
-### T3: Authenticator [P]
+### T3: Authenticator [P] ✅
 
 **What**: Implementar autenticação por username/password com credenciais de env vars.
-**Where**: `internal/session/auth.go`, `internal/session/auth_test.go`
+**Where**: `internal/modules/session/auth.go`, `internal/modules/session/auth_test.go`
 **Depends on**: T2
 **Reuses**: Nenhum
 **Requirement**: SESS-02
 
 **Done when**:
 
-- [ ] Interface `Authenticator` com método `Authenticate(username, password string) bool`
-- [ ] `EnvAuthenticator` struct que implementa `Authenticator` com credenciais de config
-- [ ] `NewEnvAuthenticator(username, password string) *EnvAuthenticator`
-- [ ] Retorna true apenas se username E password coincidem
-- [ ] Retorna false se username vazio ou password vazio
-- [ ] Testes: credenciais corretas, username errado, password errado, ambos errados, vazios
-- [ ] Gate check passes: `go test -race ./internal/session/...`
-- [ ] Test count: ≥5 tests pass (novos)
+- [x] Interface `Authenticator` com método `Authenticate(username, password string) bool`
+- [x] `EnvAuthenticator` struct que implementa `Authenticator` com credenciais de config
+- [x] `NewEnvAuthenticator(username, password string) *EnvAuthenticator`
+- [x] Retorna true apenas se username E password coincidem
+- [x] Retorna false se username vazio ou password vazio
+- [x] Testes: credenciais corretas, username errado, password errado, ambos errados, vazios
+- [x] Gate check passes: `go test -race ./internal/modules/session/...`
+- [x] Test count: ≥5 tests pass (novos)
 
 **Tests**: unit
 **Gate**: quick
 
 ---
 
-### T4: Connection Manager [P]
+### T4: Connection Manager [P] ✅
 
 **What**: Implementar o gerenciador de conexões com limite de clients e thread-safety.
-**Where**: `internal/session/connection_manager.go`, `internal/session/connection_manager_test.go`
+**Where**: `internal/modules/session/connection_manager.go`, `internal/modules/session/connection_manager_test.go`
 **Depends on**: T2
 **Reuses**: `domain.Client` de T1
 **Requirement**: SESS-03
 
 **Done when**:
 
-- [ ] `ConnectionManager` struct com mutex, mapa de clients e maxClients
-- [ ] `NewConnectionManager(maxClients int) *ConnectionManager`
-- [ ] `CanAccept() bool` — thread-safe
-- [ ] `Add(client *domain.Client) error` — retorna `ErrMaxClientsReached` se cheio
-- [ ] `Remove(clientID string)` — libera slot
-- [ ] `Get(clientID string) (*domain.Client, bool)`
-- [ ] `Count() int`
-- [ ] `CloseAll()` — fecha todas as conexões (para shutdown)
-- [ ] Testes: add até limite, add além do limite, remove libera slot, CanAccept, concorrência (10 goroutines tentando Add)
-- [ ] Gate check passes: `go test -race ./internal/session/...`
-- [ ] Test count: ≥7 tests pass (novos)
+- [x] `ConnectionManager` struct com mutex, mapa de clients e maxClients
+- [x] `NewConnectionManager(maxClients int) *ConnectionManager`
+- [x] `CanAccept() bool` — thread-safe
+- [x] `Add(client *domain.Client) error` — retorna `ErrMaxClientsReached` se cheio
+- [x] `Remove(clientID string)` — libera slot
+- [x] `Get(clientID string) (*domain.Client, bool)`
+- [x] `Count() int`
+- [x] `CloseAll()` — fecha todas as conexões (para shutdown)
+- [x] Testes: add até limite, add além do limite, remove libera slot, CanAccept, concorrência (10 goroutines tentando Add)
+- [x] Gate check passes: `go test -race ./internal/modules/session/...`
+- [x] Test count: ≥7 tests pass (novos)
 
 **Tests**: unit
 **Gate**: quick
 
 ---
 
-### T5: TCP Server e Accept Loop
+### T5: TCP Server e Accept Loop ✅
 
 **What**: Implementar o TCP listener com accept loop, verificação de limite e spawn de goroutines por conexão.
-**Where**: `internal/session/server.go`, `internal/session/interfaces.go`
+**Where**: `internal/modules/session/server.go`, `internal/modules/session/interfaces.go`
 **Depends on**: T3, T4
 **Reuses**: `ConnectionManager`, `Authenticator`, `TopicRegistry`
 **Requirement**: SESS-04
 
 **Done when**:
 
-- [ ] `Server` struct com config, listener, connMgr, auth, topics, msgChan, logger
-- [ ] `NewServer(...)` constructor com todas as dependências injetadas
-- [ ] `ListenAndServe(ctx context.Context) error` — accept loop com context cancellation
-- [ ] `Close() error` — fecha o listener
-- [ ] `interfaces.go` com `MessageSink` interface (canal de saída para ingestion)
-- [ ] Verifica `CanAccept()` antes de criar goroutine
-- [ ] Fecha conexão imediatamente se limite atingido
-- [ ] Loga erros de accept sem parar o loop
-- [ ] Gate check passes: `go build ./internal/session/...`
+- [x] `Server` struct com config, listener, connMgr, auth, topics, msgChan, logger
+- [x] `NewServer(...)` constructor com todas as dependências injetadas
+- [x] `ListenAndServe(ctx context.Context) error` — accept loop com context cancellation
+- [x] `Close() error` — fecha o listener
+- [x] `interfaces.go` com `MessageSink` interface (canal de saída para ingestion)
+- [x] Verifica `CanAccept()` antes de criar goroutine
+- [x] Fecha conexão imediatamente se limite atingido
+- [x] Loga erros de accept sem parar o loop
+- [x] Gate check passes: `go build ./internal/modules/session/...`
 
 **Tests**: integration (testado em T6 junto com handler)
 **Gate**: build
 
 ---
 
-### T6: Packet Handler (Orquestração Completa)
+### T6: Packet Handler (Orquestração Completa) ✅
 
 **What**: Implementar o handler que processa o fluxo completo: CONNECT → auth → read loop (PUBLISH, PINGREQ, SUBSCRIBE, DISCONNECT) com keep-alive.
-**Where**: `internal/session/handler.go`, `internal/session/handler_test.go`
+**Where**: `internal/modules/session/handler.go`, `internal/modules/session/handler_test.go`
 **Depends on**: T5
 **Reuses**: `protocol.ReadPacket`, `protocol.DecodeConnect`, `protocol.DecodePublish`, `protocol.DecodeSubscribe`, todos os encoders
 **Requirement**: SESS-05
 
 **Done when**:
 
-- [ ] `handleConnection(ctx, conn)` — fluxo completo de uma conexão
-- [ ] Espera CONNECT como primeiro pacote (com timeout de 5s)
-- [ ] Rejeita se primeiro pacote não é CONNECT
-- [ ] Autentica via `Authenticator`
-- [ ] Registra client via `ConnectionManager`
-- [ ] Envia CONNACK com return code apropriado
-- [ ] `readLoop(ctx, client, decoder)` — loop de leitura de pacotes
-- [ ] Trata PUBLISH: valida tópico, envia para msgChan, responde PUBACK se QoS 1
-- [ ] Trata PINGREQ: responde PINGRESP
-- [ ] Trata SUBSCRIBE: responde SUBACK
-- [ ] Trata DISCONNECT: remove client e retorna
-- [ ] Keep-alive: `ResetDeadline()` a cada pacote recebido
-- [ ] Remove client do ConnectionManager em qualquer saída (defer)
-- [ ] Testes de integração com `net.Pipe()`:
+- [x] `handleConnection(ctx, conn)` — fluxo completo de uma conexão
+- [x] Espera CONNECT como primeiro pacote (com timeout de 5s)
+- [x] Rejeita se primeiro pacote não é CONNECT
+- [x] Autentica via `Authenticator`
+- [x] Registra client via `ConnectionManager`
+- [x] Envia CONNACK com return code apropriado
+- [x] `readLoop(ctx, client, decoder)` — loop de leitura de pacotes
+- [x] Trata PUBLISH: valida tópico, envia para msgChan, responde PUBACK se QoS 1
+- [x] Trata PINGREQ: responde PINGRESP
+- [x] Trata SUBSCRIBE: responde SUBACK
+- [x] Trata DISCONNECT: remove client e retorna
+- [x] Keep-alive: `ResetDeadline()` a cada pacote recebido
+- [x] Remove client do ConnectionManager em qualquer saída (defer)
+- [x] Testes de integração com `net.Pipe()`:
   - Connect válido → CONNACK accepted
   - Connect com auth errada → CONNACK bad auth + disconnect
   - Publish QoS 0 → mensagem no canal
@@ -194,8 +194,8 @@ T5 → T6
   - PINGREQ → PINGRESP
   - DISCONNECT → client removido
   - Primeiro pacote não é CONNECT → disconnect
-- [ ] Gate check passes: `go test -race ./internal/session/...`
-- [ ] Test count: ≥8 tests pass (novos)
+- [x] Gate check passes: `go test -race ./internal/modules/session/...`
+- [x] Test count: ≥8 tests pass (novos)
 
 **Tests**: integration
 **Gate**: full

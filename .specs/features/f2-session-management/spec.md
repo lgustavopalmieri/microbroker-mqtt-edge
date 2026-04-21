@@ -149,4 +149,4 @@ O broker precisa aceitar conexões TCP de clients MQTT, autenticá-los, gerencia
 - [x] 6º client é rejeitado quando 5 estão conectados
 - [x] Credenciais incorretas resultam em CONNACK com return code 0x04
 - [x] Keep-alive funciona (client desconectado após timeout)
-- [x] Todos os testes passam com `go test -race ./internal/session/...` (31 testes)
+- [x] Todos os testes passam com `go test -race ./internal/modules/session/...` (31 testes)

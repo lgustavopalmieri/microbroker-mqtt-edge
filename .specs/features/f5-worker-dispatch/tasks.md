@@ -28,7 +28,7 @@ T1 ──┤           ├──→ (done)
 ### T1: Interface Worker e Tipos
 
 **What**: Definir a interface Worker e tipos compartilhados do módulo dispatch.
-**Where**: `internal/dispatch/domain/worker.go`, `internal/dispatch/interfaces.go`
+**Where**: `internal/modules/dispatch/domain/worker.go`, `internal/modules/dispatch/interfaces.go`
 **Depends on**: F4 T1 (usa `ingestion/domain.Message`)
 **Reuses**: `ingestion/domain.Message`
 **Requirement**: DISP-01
@@ -37,7 +37,7 @@ T1 ──┤           ├──→ (done)
 
 - [ ] Interface `Worker` com `Name() string`, `Process(ctx context.Context, msg Message) error`, `Close() error`
 - [ ] Type alias ou re-export de `Message` para evitar import circular (ou usar tipo do ingestion diretamente)
-- [ ] Gate check passes: `go build ./internal/dispatch/...`
+- [ ] Gate check passes: `go build ./internal/modules/dispatch/...`
 
 **Tests**: none (interface pura)
 **Gate**: build
@@ -47,7 +47,7 @@ T1 ──┤           ├──→ (done)
 ### T2: Fan-Out Dispatcher [P]
 
 **What**: Implementar o dispatcher que lê do canal de input e distribui para todos os workers registrados.
-**Where**: `internal/dispatch/dispatcher.go`, `internal/dispatch/dispatcher_test.go`
+**Where**: `internal/modules/dispatch/dispatcher.go`, `internal/modules/dispatch/dispatcher_test.go`
 **Depends on**: T1
 **Reuses**: Interface `Worker` de T1
 **Requirement**: DISP-02
@@ -67,7 +67,7 @@ T1 ──┤           ├──→ (done)
   - Sem workers: mensagens consumidas sem erro
   - Canal fechado: dispatcher para
   - Ordem: mensagens processadas na ordem de chegada
-- [ ] Gate check passes: `go test -race ./internal/dispatch/...`
+- [ ] Gate check passes: `go test -race ./internal/modules/dispatch/...`
 - [ ] Test count: ≥6 tests pass
 
 **Tests**: unit
@@ -78,7 +78,7 @@ T1 ──┤           ├──→ (done)
 ### T3: Logger Worker [P]
 
 **What**: Implementar o worker de log que serve como referência e ferramenta de debug.
-**Where**: `internal/dispatch/workers/logger_worker.go`, `internal/dispatch/workers/logger_worker_test.go`
+**Where**: `internal/modules/dispatch/workers/logger_worker.go`, `internal/modules/dispatch/workers/logger_worker_test.go`
 **Depends on**: T1
 **Reuses**: Interface `Worker` de T1
 **Requirement**: DISP-03
@@ -94,7 +94,7 @@ T1 ──┤           ├──→ (done)
   - Name retorna "logger"
   - Process loga campos corretos (verificar via buffer de log)
   - Close retorna nil
-- [ ] Gate check passes: `go test -race ./internal/dispatch/workers/...`
+- [ ] Gate check passes: `go test -race ./internal/modules/dispatch/workers/...`
 - [ ] Test count: ≥3 tests pass
 
 **Tests**: unit

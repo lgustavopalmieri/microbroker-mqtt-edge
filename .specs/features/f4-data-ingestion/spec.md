@@ -124,4 +124,4 @@ Após o broker receber dados via PUBLISH, precisamos garantir que cada mensagem 
 - [x] Mensagens publicadas em tópicos diferentes são persistidas na ordem correta por tópico
 - [x] SQLite contém todos os dados após 1000 PUBLISH rápidos (testado com concurrent writes)
 - [x] Backpressure funciona: fila cheia bloqueia o handler sem perder dados
-- [x] Todos os testes passam com `go test -race ./internal/ingestion/...` (21 testes)
+- [x] Todos os testes passam com `go test -race ./internal/modules/ingestion/...` (21 testes)
