@@ -1,7 +1,7 @@
 # Roadmap
 
 **Current Milestone:** v1 — Core Broker
-**Status:** Planning
+**Status:** In Progress
 
 ---
 
@@ -12,12 +12,13 @@
 
 ### Features
 
-**F1: MQTT Protocol Engine** - PLANNED
+**F1: MQTT Protocol Engine** - COMPLETE ✅
 
 - Parsing e encoding de todos os packet types necessários (CONNECT, CONNACK, PUBLISH, PUBACK, SUBSCRIBE, SUBACK, PINGREQ, PINGRESP, DISCONNECT)
 - Remaining Length encoding/decoding
 - UTF-8 string handling conforme spec MQTT
 - Constantes e tipos do protocolo
+- 68 testes unitários passando com race detector
 
 **F2: Session Management** - PLANNED
 

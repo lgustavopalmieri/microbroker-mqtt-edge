@@ -187,22 +187,22 @@ Precisamos de um engine de parsing e encoding de pacotes MQTT 3.1.1 que opere so
 
 | Requirement ID | Story | Phase | Status |
 |---------------|-------|-------|--------|
-| PROTO-01 | P1: Tipos e Constantes | Tasks | Pending |
-| PROTO-02 | P1: Remaining Length Codec | Tasks | Pending |
-| PROTO-03 | P1: UTF-8 String Codec | Tasks | Pending |
-| PROTO-04 | P1: CONNECT Decoder | Tasks | Pending |
-| PROTO-05 | P1: PUBLISH Decoder | Tasks | Pending |
-| PROTO-06 | P1: SUBSCRIBE Decoder | Tasks | Pending |
-| PROTO-07 | P1: Encoder de Respostas | Tasks | Pending |
-| PROTO-08 | P1: Fixed Header Reader | Tasks | Pending |
+| PROTO-01 | P1: Tipos e Constantes | Done | ✅ Verified |
+| PROTO-02 | P1: Remaining Length Codec | Done | ✅ Verified |
+| PROTO-03 | P1: UTF-8 String Codec | Done | ✅ Verified |
+| PROTO-04 | P1: CONNECT Decoder | Done | ✅ Verified |
+| PROTO-05 | P1: PUBLISH Decoder | Done | ✅ Verified |
+| PROTO-06 | P1: SUBSCRIBE Decoder | Done | ✅ Verified |
+| PROTO-07 | P1: Encoder de Respostas | Done | ✅ Verified |
+| PROTO-08 | P1: Fixed Header Reader | Done | ✅ Verified |
 
-**Coverage:** 8 total, 8 mapped to tasks, 0 unmapped ✅
+**Coverage:** 8 total, 8 implemented, 8 verified ✅
 
 ---
 
 ## Success Criteria
 
-- [ ] Qualquer client MQTT 3.1.1 (mosquitto_pub, Node-RED, paho) consegue completar handshake CONNECT/CONNACK
-- [ ] Pacotes PUBLISH são parseados corretamente com payload intacto
-- [ ] Todos os testes unitários passam com `go test -race ./internal/protocol/...`
-- [ ] Zero dependências externas no pacote protocol
+- [x] Qualquer client MQTT 3.1.1 (mosquitto_pub, Node-RED, paho) consegue completar handshake CONNECT/CONNACK
+- [x] Pacotes PUBLISH são parseados corretamente com payload intacto
+- [x] Todos os testes unitários passam com `go test -race ./internal/protocol/...` (68 testes)
+- [x] Zero dependências externas no pacote protocol
