@@ -115,9 +115,52 @@ Todos os módulos precisam ser conectados (wired) no main.go com configuração 
 
 ---
 
+### P1: Testes End-to-End ⭐ MVP
+
+**User Story**: Como desenvolvedor, preciso de testes e2e que validem o fluxo completo do broker (TCP real → protocol → session → ingestion → SQLite real → dispatch → worker) para garantir que todos os módulos funcionam integrados corretamente.
+
+**Why P1**: É a única forma de garantir que o sistema funciona de ponta a ponta. Testes unitários e de integração parcial não cobrem problemas de wiring, race conditions entre módulos, ou falhas de contrato entre camadas.
+
+**Acceptance Criteria**:
+
+1. WHEN um client TCP real conecta, autentica e publica N mensagens em tópicos diferentes THEN todas as mensagens devem estar persistidas no SQLite (verificado via GetByTopic) E o worker mock deve ter recebido todas
+2. WHEN 3-5 clients TCP reais publicam simultaneamente THEN nenhuma mensagem se perde, todas estão no banco, e a ordem por tópico é mantida
+3. WHEN 5 clients estão conectados e um 6º tenta conectar THEN o 6º é rejeitado (conexão fechada) e os 5 originais continuam funcionando normalmente
+4. WHEN um client falha na autenticação THEN nenhuma mensagem aparece no banco nem no worker — o pipeline não é poluído
+5. WHEN o context é cancelado com clients publicando THEN o broker para de aceitar conexões e as mensagens já no pipeline são drenadas e persistidas no banco
+6. WHEN um client publica em tópico não permitido THEN a mensagem não aparece no banco (GetByTopic retorna vazio para esse tópico) e o client continua conectado
+
+**Independent Test**: `go test -race -v ./tests/e2e/...`
+
+---
+
+## Edge Cases
+
+- WHEN env var tem espaços extras THEN system SHALL fazer trim
+- WHEN BROKER_TOPICS tem vírgulas extras (ex: "a,,b") THEN system SHALL ignorar vazios
+- WHEN o diretório do DB_PATH não existe THEN system SHALL criar automaticamente
+- WHEN shutdown timeout expira THEN system SHALL forçar saída
+
+---
+
+## Requirement Traceability
+
+| Requirement ID | Story | Phase | Status |
+|---------------|-------|-------|--------|
+| BOOT-01 | P1: Config Loader | Tasks | Pending |
+| BOOT-02 | P1: Bootstrap | Tasks | Pending |
+| BOOT-03 | P1: Logger Interface | Tasks | Pending |
+| BOOT-04 | P2: Docker | Tasks | Pending |
+| BOOT-05 | P1: Testes End-to-End | Tasks | Pending |
+
+**Coverage:** 5 total, 5 mapped to tasks, 0 unmapped ✅
+
+---
+
 ## Success Criteria
 
 - [ ] `go run ./cmd/main.go` inicia o broker e loga configuração
 - [ ] SIGINT causa shutdown gracioso com log de confirmação
 - [ ] Config inválida causa saída com mensagem de erro clara
 - [ ] `docker build` e `docker run` funcionam
+- [ ] Testes e2e passam com `go test -race ./tests/e2e/...` cobrindo todos os cenários de integração completa

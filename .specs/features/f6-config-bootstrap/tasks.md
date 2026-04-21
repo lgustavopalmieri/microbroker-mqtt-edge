@@ -18,7 +18,7 @@
 ### Phase 2: Integration (Sequential)
 
 ```
-T3 → T4
+T3 → T4 → T5
 ```
 
 ---
@@ -135,6 +135,70 @@ T3 → T4
 
 ---
 
+### T5: Testes End-to-End
+
+**What**: Implementar suite de testes e2e que validam o fluxo completo do broker com TCP real, SQLite real (`:memory:`), e todos os módulos wired. Cada teste sobe o broker programaticamente (Server + Pipeline + Dispatcher + SQLite + migrations) e conecta clients TCP reais.
+**Where**: `tests/e2e/broker_e2e_test.go`
+**Depends on**: T3 (bootstrap completo, todos os módulos wired)
+**Reuses**: Todos os módulos, helpers de construção de pacotes MQTT do `session/handler_test.go`
+**Requirement**: BOOT-05
+
+**Done when**:
+
+- [ ] Helper `setupBroker(t)` que:
+  - Cria SQLite `:memory:` + roda migrations
+  - Cria channels (ingestChan, dispatchChan)
+  - Cria Pipeline com topics configurados
+  - Cria Dispatcher com mock worker que coleta mensagens
+  - Cria Server com TCP real em porta 0 (auto-assign)
+  - Retorna struct com server addr, store, mock worker, cancel func
+- [ ] Helper `connectClient(t, addr, clientID, user, pass)` que:
+  - Abre conexão TCP real
+  - Envia CONNECT packet
+  - Lê e valida CONNACK
+  - Retorna `net.Conn`
+- [ ] Helper `publishMessage(t, conn, topic, payload, qos, packetID)` que:
+  - Envia PUBLISH packet via TCP
+  - Se QoS 1, lê e valida PUBACK
+- [ ] Teste: **Happy path completo**
+  - 1 client conecta, publica 5 mensagens em 2 tópicos diferentes
+  - Verifica via `store.GetByTopic()` que todas as 5 mensagens estão no SQLite
+  - Verifica que o mock worker recebeu todas as 5 mensagens
+  - Verifica campos: clientID, topic, payload corretos
+- [ ] Teste: **Múltiplos clients simultâneos**
+  - 3 clients conectam em paralelo
+  - Cada um publica 10 mensagens (total 30)
+  - Verifica que todas as 30 estão no banco
+  - Verifica que o mock worker recebeu todas as 30
+  - Verifica que a ordem por tópico é mantida (mensagens do mesmo tópico em ordem de envio)
+- [ ] Teste: **6º client rejeitado**
+  - 5 clients conectam com sucesso
+  - 6º client tenta conectar → conexão é fechada pelo server (read retorna EOF/error)
+  - Os 5 originais publicam 1 mensagem cada → todas as 5 aparecem no banco
+- [ ] Teste: **Auth falha não polui pipeline**
+  - 1 client conecta com credenciais erradas → recebe CONNACK com código de erro
+  - Verifica que o banco está vazio
+  - Verifica que o mock worker não recebeu nada
+  - 1 client conecta com credenciais corretas e publica → mensagem aparece no banco
+- [ ] Teste: **Graceful shutdown sob carga**
+  - 1 client conecta e publica 5 mensagens
+  - Espera mensagens chegarem no dispatch channel
+  - Cancela context
+  - Verifica que as mensagens já processadas estão no banco
+- [ ] Teste: **Tópico não permitido não persiste**
+  - 1 client conecta e publica em tópico permitido e em tópico não permitido
+  - Verifica que apenas a mensagem do tópico permitido está no banco
+  - Verifica que o client continua conectado (publica outra mensagem no tópico permitido com sucesso)
+- [ ] Gate check passes: `go test -race ./tests/e2e/...`
+- [ ] Test count: ≥6 tests pass
+
+**Tests**: e2e (TCP real + SQLite real `:memory:`)
+**Gate**: full
+
+**Commit**: `test(e2e): end-to-end broker tests with real TCP and SQLite`
+
+---
+
 ## Parallel Execution Map
 
 ```
@@ -144,7 +208,7 @@ Phase 1 (Parallel):
 
 Phase 2 (Sequential):
   T1, T2 complete, then:
-    T3 ──→ T4
+    T3 ──→ T4 ──→ T5
 ```
 
 ---
@@ -157,6 +221,7 @@ Phase 2 (Sequential):
 | T2: Config Loader | 1 struct + loader + tests | ✅ Granular |
 | T3: Bootstrap | 1 file (main.go) | ⚠️ OK — wiring only, zero business logic |
 | T4: Docker | 3 files (infra) | ✅ Granular |
+| T5: Testes E2E | 1 test file + helpers | ✅ Granular |
 
 ---
 
@@ -168,6 +233,7 @@ Phase 2 (Sequential):
 | T2 | None | Start (parallel) | ✅ Match |
 | T3 | T1, T2, F1-F5 | T1,T2 → T3 | ✅ Match |
 | T4 | T3 | T3 → T4 | ✅ Match |
+| T5 | T3 | T4 → T5 | ✅ Match |
 
 ---
 
@@ -179,3 +245,4 @@ Phase 2 (Sequential):
 | T2 | Config | unit | unit | ✅ OK |
 | T3 | Bootstrap (main.go) | build | build | ✅ OK |
 | T4 | Docker (infra) | none | none | ✅ OK |
+| T5 | E2E (cross-module) | e2e | e2e | ✅ OK |
