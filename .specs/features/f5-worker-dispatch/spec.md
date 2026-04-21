@@ -6,10 +6,10 @@ Após cada mensagem ser persistida no SQLite, ela precisa ser distribuída para 
 
 ## Goals
 
-- [ ] Interface Worker clara e simples para implementação de plugins
-- [ ] Dispatcher fan-out que distribui cada mensagem para todos os workers registrados
-- [ ] Logger Worker como implementação de referência e ferramenta de debug
-- [ ] Graceful shutdown de todos os workers
+- [x] Interface Worker clara e simples para implementação de plugins
+- [x] Dispatcher fan-out que distribui cada mensagem para todos os workers registrados
+- [x] Logger Worker como implementação de referência e ferramenta de debug
+- [x] Graceful shutdown de todos os workers
 
 ## Out of Scope
 
@@ -87,9 +87,9 @@ Após cada mensagem ser persistida no SQLite, ela precisa ser distribuída para 
 
 | Requirement ID | Story | Phase | Status |
 |---------------|-------|-------|--------|
-| DISP-01 | P1: Interface Worker | Tasks | Pending |
-| DISP-02 | P1: Fan-Out Dispatcher | Tasks | Pending |
-| DISP-03 | P1: Logger Worker | Tasks | Pending |
+| DISP-01 | P1: Interface Worker | Tasks | ✅ Done |
+| DISP-02 | P1: Fan-Out Dispatcher | Tasks | ✅ Done |
+| DISP-03 | P1: Logger Worker | Tasks | ✅ Done |
 
 **Coverage:** 3 total, 3 mapped to tasks, 0 unmapped ✅
 
@@ -97,7 +97,7 @@ Após cada mensagem ser persistida no SQLite, ela precisa ser distribuída para 
 
 ## Success Criteria
 
-- [ ] Mensagem persistida aparece no log do Logger Worker
-- [ ] Múltiplos workers recebem a mesma mensagem
-- [ ] Falha de um worker não afeta os outros
-- [ ] Todos os testes passam com `go test -race ./internal/modules/dispatch/...`
+- [x] Mensagem persistida aparece no log do Logger Worker
+- [x] Múltiplos workers recebem a mesma mensagem
+- [x] Falha de um worker não afeta os outros
+- [x] Todos os testes passam com `go test -race ./internal/modules/dispatch/...`

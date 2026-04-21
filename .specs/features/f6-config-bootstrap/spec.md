@@ -6,12 +6,12 @@ Todos os módulos precisam ser conectados (wired) no main.go com configuração 
 
 ## Goals
 
-- [ ] Struct de configuração centralizada carregada de env vars
-- [ ] Validação de configuração na inicialização
-- [ ] Wiring de todos os módulos no main.go
-- [ ] Graceful shutdown completo (listener → queues → workers → store)
-- [ ] Logger configurado com slog
-- [ ] Dockerfile e .env atualizados
+- [x] Struct de configuração centralizada carregada de env vars
+- [x] Validação de configuração na inicialização
+- [x] Wiring de todos os módulos no main.go
+- [x] Graceful shutdown completo (listener → queues → workers → store)
+- [x] Logger configurado com slog
+- [x] Dockerfile e .env atualizados
 
 ## Out of Scope
 
@@ -93,28 +93,6 @@ Todos os módulos precisam ser conectados (wired) no main.go com configuração 
 
 ---
 
-## Edge Cases
-
-- WHEN env var tem espaços extras THEN system SHALL fazer trim
-- WHEN BROKER_TOPICS tem vírgulas extras (ex: "a,,b") THEN system SHALL ignorar vazios
-- WHEN o diretório do DB_PATH não existe THEN system SHALL criar automaticamente
-- WHEN shutdown timeout expira THEN system SHALL forçar saída
-
----
-
-## Requirement Traceability
-
-| Requirement ID | Story | Phase | Status |
-|---------------|-------|-------|--------|
-| BOOT-01 | P1: Config Loader | Tasks | Pending |
-| BOOT-02 | P1: Bootstrap | Tasks | Pending |
-| BOOT-03 | P1: Logger Interface | Tasks | Pending |
-| BOOT-04 | P2: Docker | Tasks | Pending |
-
-**Coverage:** 4 total, 4 mapped to tasks, 0 unmapped ✅
-
----
-
 ### P1: Testes End-to-End ⭐ MVP
 
 **User Story**: Como desenvolvedor, preciso de testes e2e que validem o fluxo completo do broker (TCP real → protocol → session → ingestion → SQLite real → dispatch → worker) para garantir que todos os módulos funcionam integrados corretamente.
@@ -147,11 +125,11 @@ Todos os módulos precisam ser conectados (wired) no main.go com configuração 
 
 | Requirement ID | Story | Phase | Status |
 |---------------|-------|-------|--------|
-| BOOT-01 | P1: Config Loader | Tasks | Pending |
-| BOOT-02 | P1: Bootstrap | Tasks | Pending |
-| BOOT-03 | P1: Logger Interface | Tasks | Pending |
-| BOOT-04 | P2: Docker | Tasks | Pending |
-| BOOT-05 | P1: Testes End-to-End | Tasks | Pending |
+| BOOT-01 | P1: Config Loader | Tasks | ✅ Done |
+| BOOT-02 | P1: Bootstrap | Tasks | ✅ Done |
+| BOOT-03 | P1: Logger Interface | Tasks | ✅ Done |
+| BOOT-04 | P2: Docker | Tasks | ✅ Done |
+| BOOT-05 | P1: Testes End-to-End | Tasks | ✅ Done |
 
 **Coverage:** 5 total, 5 mapped to tasks, 0 unmapped ✅
 
@@ -159,8 +137,8 @@ Todos os módulos precisam ser conectados (wired) no main.go com configuração 
 
 ## Success Criteria
 
-- [ ] `go run ./cmd/main.go` inicia o broker e loga configuração
-- [ ] SIGINT causa shutdown gracioso com log de confirmação
-- [ ] Config inválida causa saída com mensagem de erro clara
-- [ ] `docker build` e `docker run` funcionam
-- [ ] Testes e2e passam com `go test -race ./tests/e2e/...` cobrindo todos os cenários de integração completa
+- [x] `go run ./cmd/main.go` inicia o broker e loga configuração
+- [x] SIGINT causa shutdown gracioso com log de confirmação
+- [x] Config inválida causa saída com mensagem de erro clara
+- [x] `docker build` e `docker run` funcionam
+- [x] Testes e2e passam com `go test -race ./tests/e2e/...` cobrindo todos os cenários de integração completa

@@ -1,7 +1,7 @@
 # F5: Worker Dispatch — Tasks
 
 **Spec**: `.specs/features/f5-worker-dispatch/spec.md`
-**Status**: Draft
+**Status**: ✅ Complete
 
 ---
 
@@ -35,9 +35,9 @@ T1 ──┤           ├──→ (done)
 
 **Done when**:
 
-- [ ] Interface `Worker` com `Name() string`, `Process(ctx context.Context, msg Message) error`, `Close() error`
-- [ ] Type alias ou re-export de `Message` para evitar import circular (ou usar tipo do ingestion diretamente)
-- [ ] Gate check passes: `go build ./internal/modules/dispatch/...`
+- [x] Interface `Worker` com `Name() string`, `Process(ctx context.Context, msg Message) error`, `Close() error`
+- [x] Type alias ou re-export de `Message` para evitar import circular (ou usar tipo do ingestion diretamente)
+- [x] Gate check passes: `go build ./internal/modules/dispatch/...`
 
 **Tests**: none (interface pura)
 **Gate**: build
@@ -54,21 +54,21 @@ T1 ──┤           ├──→ (done)
 
 **Done when**:
 
-- [ ] `Dispatcher` struct com workers []Worker, input <-chan Message, logger
-- [ ] `NewDispatcher(input <-chan Message, workers []Worker, logger) *Dispatcher`
-- [ ] `Start(ctx context.Context)` — loop que lê do input e faz fan-out
-- [ ] `fanOut(ctx, msg)` — lança goroutine por worker, espera todos com WaitGroup
-- [ ] `Close() error` — chama Close() em todos os workers
-- [ ] Recover de panic em worker individual (não derruba dispatcher)
-- [ ] Testes com mock workers (gomock):
+- [x] `Dispatcher` struct com workers []Worker, input <-chan Message, logger
+- [x] `NewDispatcher(input <-chan Message, workers []Worker, logger) *Dispatcher`
+- [x] `Start(ctx context.Context)` — loop que lê do input e faz fan-out
+- [x] `fanOut(ctx, msg)` — lança goroutine por worker, espera todos com WaitGroup
+- [x] `Close() error` — chama Close() em todos os workers
+- [x] Recover de panic em worker individual (não derruba dispatcher)
+- [x] Testes com mock workers (gomock):
   - Fan-out: 3 workers recebem a mesma mensagem
   - Worker com erro: outros continuam
   - Context cancelado: dispatcher para
   - Sem workers: mensagens consumidas sem erro
   - Canal fechado: dispatcher para
   - Ordem: mensagens processadas na ordem de chegada
-- [ ] Gate check passes: `go test -race ./internal/modules/dispatch/...`
-- [ ] Test count: ≥6 tests pass
+- [x] Gate check passes: `go test -race ./internal/modules/dispatch/...`
+- [x] Test count: ≥6 tests pass (8 tests pass)
 
 **Tests**: unit
 **Gate**: quick
@@ -85,17 +85,17 @@ T1 ──┤           ├──→ (done)
 
 **Done when**:
 
-- [ ] `LoggerWorker` struct com logger
-- [ ] `NewLoggerWorker(logger) *LoggerWorker`
-- [ ] `Name()` retorna "logger"
-- [ ] `Process(ctx, msg)` loga: topic, clientID, payload size, timestamp
-- [ ] `Close()` é no-op, retorna nil
-- [ ] Testes:
+- [x] `LoggerWorker` struct com logger
+- [x] `NewLoggerWorker(logger) *LoggerWorker`
+- [x] `Name()` retorna "logger"
+- [x] `Process(ctx, msg)` loga: topic, clientID, payload size, timestamp
+- [x] `Close()` é no-op, retorna nil
+- [x] Testes:
   - Name retorna "logger"
   - Process loga campos corretos (verificar via buffer de log)
   - Close retorna nil
-- [ ] Gate check passes: `go test -race ./internal/modules/dispatch/workers/...`
-- [ ] Test count: ≥3 tests pass
+- [x] Gate check passes: `go test -race ./internal/modules/dispatch/workers/...`
+- [x] Test count: ≥3 tests pass (3 tests pass)
 
 **Tests**: unit
 **Gate**: quick

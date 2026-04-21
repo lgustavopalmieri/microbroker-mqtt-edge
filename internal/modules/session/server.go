@@ -108,3 +108,8 @@ func (s *Server) Addr() net.Addr {
 	}
 	return nil
 }
+
+// Ready returns a channel that is closed when the server's listener is ready.
+func (s *Server) Ready() <-chan struct{} {
+	return s.ready
+}
