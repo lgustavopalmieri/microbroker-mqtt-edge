@@ -1,7 +1,7 @@
 # F2: Session Management — Tasks
 
 **Spec**: `.specs/features/f2-session-management/spec.md`
-**Status**: Draft
+**Status**: Done
 
 ---
 

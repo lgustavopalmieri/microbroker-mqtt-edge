@@ -20,7 +20,7 @@
 - Constantes e tipos do protocolo
 - 68 testes unitários passando com race detector
 
-**F2: Session Management** - PLANNED
+**F2: Session Management** - COMPLETE ✅
 
 - TCP listener com accept loop
 - Controle de conexões (max 5 clients)
@@ -28,12 +28,14 @@
 - Keep-alive com timeout
 - Packet handler (orquestra protocol + session)
 - Graceful disconnect
+- 31 testes passando com race detector
 
-**F3: Topic Registry** - PLANNED
+**F3: Topic Registry** - COMPLETE ✅ (implementada dentro de F2)
 
 - Registro de tópicos via env vars
 - Validação de tópicos no PUBLISH
 - Máximo 5 tópicos
+- 8 testes unitários + 2 testes de integração
 
 **F4: Data Ingestion Pipeline** - PLANNED
 

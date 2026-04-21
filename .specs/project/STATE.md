@@ -9,6 +9,7 @@
 | 2026-04-21 | `modernc.org/sqlite` | Pure Go, sem CGO, cross-compilation |
 | 2026-04-21 | Arquitetura modular com channels | Meio-termo entre hexagonal e pragmatismo |
 | 2026-04-21 | Max 5 clients, max 5 tópicos | Design constraint para edge computing |
+| 2026-04-21 | F3 absorvida em F2 | TopicRegistry é value object do domínio de sessão, não justifica feature separada |
 
 ## Blockers
 

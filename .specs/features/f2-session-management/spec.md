@@ -133,20 +133,20 @@ O broker precisa aceitar conexões TCP de clients MQTT, autenticá-los, gerencia
 
 | Requirement ID | Story | Phase | Status |
 |---------------|-------|-------|--------|
-| SESS-01 | P1: Entidade Client | Tasks | Pending |
-| SESS-02 | P1: Autenticação | Tasks | Pending |
-| SESS-03 | P1: Connection Manager | Tasks | Pending |
-| SESS-04 | P1: TCP Server | Tasks | Pending |
-| SESS-05 | P1: Packet Handler | Tasks | Pending |
+| SESS-01 | P1: Entidade Client | Done | ✅ Verified |
+| SESS-02 | P1: Autenticação | Done | ✅ Verified |
+| SESS-03 | P1: Connection Manager | Done | ✅ Verified |
+| SESS-04 | P1: TCP Server | Done | ✅ Verified |
+| SESS-05 | P1: Packet Handler | Done | ✅ Verified |
 
-**Coverage:** 5 total, 5 mapped to tasks, 0 unmapped ✅
+**Coverage:** 5 total, 5 implemented, 5 verified ✅
 
 ---
 
 ## Success Criteria
 
-- [ ] Client MQTT (mosquitto_pub) consegue conectar, publicar e desconectar
-- [ ] 6º client é rejeitado quando 5 estão conectados
-- [ ] Credenciais incorretas resultam em CONNACK com return code 0x04
-- [ ] Keep-alive funciona (client desconectado após timeout)
-- [ ] Todos os testes passam com `go test -race ./internal/session/...`
+- [x] Client MQTT (mosquitto_pub) consegue conectar, publicar e desconectar
+- [x] 6º client é rejeitado quando 5 estão conectados
+- [x] Credenciais incorretas resultam em CONNACK com return code 0x04
+- [x] Keep-alive funciona (client desconectado após timeout)
+- [x] Todos os testes passam com `go test -race ./internal/session/...` (31 testes)
