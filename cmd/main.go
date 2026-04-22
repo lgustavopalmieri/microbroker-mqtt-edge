@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"syscall"
 
 	"microbroker-mqtt-edge/internal/common"
+	"microbroker-mqtt-edge/internal/common/audit"
 	"microbroker-mqtt-edge/internal/config"
 	"microbroker-mqtt-edge/internal/modules/dispatch"
 	dispatchdomain "microbroker-mqtt-edge/internal/modules/dispatch/domain"
@@ -133,6 +135,20 @@ func main() {
 		}
 	}()
 
+	// 14. Audit HTTP API
+	auditReader := audit.NewSQLiteReader(db)
+	auditHandler := audit.NewHandler(auditReader, logger)
+	mux := http.NewServeMux()
+	auditHandler.RegisterRoutes(mux)
+
+	httpServer := &http.Server{Addr: cfg.HTTPAddress(), Handler: mux}
+	go func() {
+		logger.Info("audit API started", "address", cfg.HTTPAddress())
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("http server error", "error", err)
+		}
+	}()
+
 	logger.Info("broker ready")
 
 	// 14. Wait for signal
@@ -140,8 +156,9 @@ func main() {
 	logger.Info("shutting down...")
 	cancel()
 
-	// 15. Cleanup
+	// 16. Cleanup
 	server.Close()
+	httpServer.Shutdown(context.Background())
 	dispatcher.Close()
 	connMgr.CloseAll()
 

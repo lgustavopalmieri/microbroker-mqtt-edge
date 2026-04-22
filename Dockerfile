@@ -10,5 +10,5 @@ RUN apk add --no-cache ca-certificates
 WORKDIR /app
 RUN mkdir -p /data
 COPY --from=builder /app/microbroker .
-EXPOSE 1883
+EXPOSE 1883 8080
 ENTRYPOINT ["/app/microbroker"]

@@ -12,6 +12,7 @@ import (
 type Config struct {
 	Host            string
 	Port            int
+	HTTPPort        int
 	Username        string
 	Password        string
 	Topics          []string
@@ -25,6 +26,7 @@ type Config struct {
 const (
 	defaultHost            = "0.0.0.0"
 	defaultPort            = 1883
+	defaultHTTPPort        = 8080
 	defaultMaxClients      = 5
 	defaultQueueBufferSize = 10000
 	defaultDBPath          = "./data/broker.db"
@@ -44,12 +46,18 @@ func (c *Config) Address() string {
 	return fmt.Sprintf("%s:%d", c.Host, c.Port)
 }
 
+// HTTPAddress returns the "host:port" string for the HTTP API listener.
+func (c *Config) HTTPAddress() string {
+	return fmt.Sprintf("%s:%d", c.Host, c.HTTPPort)
+}
+
 // Load reads configuration from environment variables, applies defaults,
 // trims whitespace, and validates all required fields.
 func Load() (*Config, error) {
 	cfg := &Config{
 		Host:            envOrDefault("BROKER_HOST", defaultHost),
 		Port:            envIntOrDefault("BROKER_PORT", defaultPort),
+		HTTPPort:        envIntOrDefault("BROKER_HTTP_PORT", defaultHTTPPort),
 		Username:        strings.TrimSpace(os.Getenv("BROKER_USERNAME")),
 		Password:        strings.TrimSpace(os.Getenv("BROKER_PASSWORD")),
 		MaxClients:      envIntOrDefault("BROKER_MAX_CLIENTS", defaultMaxClients),
