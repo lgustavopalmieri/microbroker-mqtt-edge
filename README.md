@@ -1,50 +1,50 @@
 # microbroker-mqtt-edge
 
-Broker MQTT leve e embarcável para ambientes edge/industrial. Recebe mensagens via protocolo MQTT 3.1.1 sobre TCP, persiste em SQLite local e despacha para workers configuráveis. Zero dependências externas em runtime — basta o binário e um volume para o banco.
+Lightweight and embeddable MQTT broker for edge/industrial environments. Receives messages via MQTT 3.1.1 protocol over TCP, persists to local SQLite, and dispatches to configurable workers. Zero external runtime dependencies — just the binary and a volume for the database.
 
-## Arquitetura
+## Architecture
 
 ```
-Cliente MQTT ──TCP:1883──▶ Session (auth + topic filter)
+MQTT Client ──TCP:1883──▶ Session (auth + topic filter)
                               │
                               ▼
-                          Ingestion (fila FIFO por tópico → SQLite)
+                          Ingestion (FIFO queue per topic → SQLite)
                               │
                               ▼
-                          Dispatch (fan-out para workers)
+                          Dispatch (fan-out to workers)
 ```
 
-- **Session** — aceita conexões TCP, autentica via usuário/senha, filtra tópicos permitidos e encaminha PUBLISH para a camada de ingestão.
-- **Ingestion** — uma fila FIFO por tópico com consumer sequencial. Cada mensagem é persistida na tabela `raw_data` (SQLite) antes de seguir adiante.
-- **Dispatch** — recebe mensagens já persistidas e distribui para todos os workers registrados em paralelo.
+- **Session** — accepts TCP connections, authenticates via username/password, filters allowed topics, and forwards PUBLISH to the ingestion layer.
+- **Ingestion** — one FIFO queue per topic with sequential consumer. Each message is persisted to the `raw_data` table (SQLite) before proceeding.
+- **Dispatch** — receives already-persisted messages and distributes to all registered workers in parallel.
 
-## Variáveis de Ambiente
+## Environment Variables
 
-| Variável | Obrigatória | Default | Descrição |
+| Variable | Required | Default | Description |
 |---|---|---|---|
-| `BROKER_HOST` | Não | `0.0.0.0` | Endereço de bind do servidor TCP |
-| `BROKER_PORT` | Não | `1883` | Porta TCP do broker |
-| `BROKER_HTTP_PORT` | Não | `8080` | Porta HTTP da API de audit |
-| `BROKER_USERNAME` | **Sim** | — | Usuário para autenticação MQTT |
-| `BROKER_PASSWORD` | **Sim** | — | Senha para autenticação MQTT |
-| `BROKER_TOPICS` | **Sim** | — | Tópicos permitidos (1–5, separados por vírgula) |
-| `BROKER_MAX_CLIENTS` | Não | `5` | Máximo de conexões simultâneas (1–5) |
-| `BROKER_QUEUE_BUFFER_SIZE` | Não | `10000` | Tamanho do buffer de cada fila interna |
-| `BROKER_DB_PATH` | Não | `./data/broker.db` | Caminho do arquivo SQLite |
-| `BROKER_TIMEZONE` | Não | `UTC` | Timezone gravado junto com cada mensagem |
+| `BROKER_HOST` | No | `0.0.0.0` | TCP server bind address |
+| `BROKER_PORT` | No | `1883` | TCP broker port |
+| `BROKER_HTTP_PORT` | No | `8080` | HTTP API (audit) port |
+| `BROKER_USERNAME` | **Yes** | — | MQTT authentication username |
+| `BROKER_PASSWORD` | **Yes** | — | MQTT authentication password |
+| `BROKER_TOPICS` | **Yes** | — | Allowed topics (1–5, comma-separated) |
+| `BROKER_MAX_CLIENTS` | No | `5` | Maximum concurrent connections (1–5) |
+| `BROKER_QUEUE_BUFFER_SIZE` | No | `10000` | Internal queue buffer size |
+| `BROKER_DB_PATH` | No | `./data/broker.db` | SQLite database file path |
+| `BROKER_TIMEZONE` | No | `UTC` | Timezone recorded with each message |
 
-## Como Rodar
+## How to Run
 
-### Binário local
+### Local Binary
 
 ```bash
-# copie e ajuste as variáveis
+# copy and adjust variables
 cp .env.example .env
 
 # build
 go build -o microbroker ./cmd/main.go
 
-# execute
+# run
 ./microbroker
 ```
 
@@ -55,23 +55,23 @@ cp .env.example .env
 docker compose up -d
 ```
 
-O volume `broker-data` persiste o SQLite em `/data/broker.db` dentro do container.
+The `broker-data` volume persists SQLite to `/data/broker.db` inside the container.
 
-## Conectando um Cliente MQTT
+## Connecting an MQTT Client
 
-Qualquer client MQTT 3.1.1 funciona (mosquitto_pub, MQTTX, paho-mqtt, etc.).
+Any MQTT 3.1.1 client works (mosquitto_pub, MQTTX, paho-mqtt, etc.).
 
-### Parâmetros de conexão
+### Connection Parameters
 
-| Parâmetro | Valor |
+| Parameter | Value |
 |---|---|
-| Host | IP/hostname da máquina |
-| Porta | `1883` (ou o valor de `BROKER_PORT`) |
-| Usuário | valor de `BROKER_USERNAME` |
-| Senha | valor de `BROKER_PASSWORD` |
-| QoS | `0` ou `1` |
+| Host | IP/hostname of the machine |
+| Port | `1883` (or the value of `BROKER_PORT`) |
+| Username | value of `BROKER_USERNAME` |
+| Password | value of `BROKER_PASSWORD` |
+| QoS | `0` or `1` |
 
-### Exemplo com mosquitto_pub
+### Example with mosquitto_pub
 
 ```bash
 mosquitto_pub \
@@ -83,7 +83,7 @@ mosquitto_pub \
   -m '{"machine_id":"CNC-01","status":"running","temperature":72.5,"rpm":1200}'
 ```
 
-### Exemplo com Python (paho-mqtt)
+### Example with Python (paho-mqtt)
 
 ```python
 import paho.mqtt.client as mqtt
@@ -104,11 +104,11 @@ client.publish("machine/status", json.dumps(payload), qos=1)
 client.disconnect()
 ```
 
-## Payload JSON
+## JSON Payload
 
-O broker aceita qualquer payload em bytes, mas o uso esperado é JSON. O conteúdo é gravado como texto na coluna `payload` da tabela `raw_data`.
+The broker accepts any payload in bytes, but the expected usage is JSON. The content is stored as text in the `payload` column of the `raw_data` table.
 
-### Exemplos por tópico
+### Examples by Topic
 
 **machine/status**
 ```json
@@ -160,7 +160,7 @@ O broker aceita qualquer payload em bytes, mas o uso esperado é JSON. O conteú
 }
 ```
 
-## Estrutura do Banco (SQLite)
+## Database Schema (SQLite)
 
 ```sql
 CREATE TABLE raw_data (
@@ -174,23 +174,23 @@ CREATE TABLE raw_data (
 );
 ```
 
-Índices em `topic`, `timestamp` e `client`.
+Indexes on `topic`, `timestamp`, and `client`.
 
-## API REST — Audit
+## REST API — Audit
 
-Endpoint para consultar mensagens persistidas por tópico.
+Endpoint to query persisted messages by topic.
 
 ```
 GET /audit/{topic}
 ```
 
-### Exemplo
+### Example
 
 ```bash
 curl http://localhost:8080/audit/machine/status
 ```
 
-### Resposta
+### Response
 
 ```json
 [
@@ -204,24 +204,24 @@ curl http://localhost:8080/audit/machine/status
 ]
 ```
 
-Retorna `[]` quando não há registros para o tópico.
+Returns `[]` when there are no records for the topic.
 
-## Estrutura do Projeto
+## Project Structure
 
 ```
-cmd/main.go                          → Entrypoint e wiring
+cmd/main.go                          → Entrypoint and wiring
 internal/
-  config/                            → Carregamento de variáveis de ambiente
-  common/                            → Logger compartilhado
+  config/                            → Environment variable loading
+  common/                            → Shared logger
   modules/
-    protocol/                        → Codec MQTT 3.1.1 (encoder/decoder)
-    session/                         → Servidor TCP, auth, connection manager
-    ingestion/                       → Pipeline FIFO + persistência SQLite
-    dispatch/                        → Fan-out para workers
+    protocol/                        → MQTT 3.1.1 codec (encoder/decoder)
+    session/                         → TCP server, auth, connection manager
+    ingestion/                       → FIFO pipeline + SQLite persistence
+    dispatch/                        → Fan-out to workers
   platform/
-    database/                        → Conexão SQLite + migrations
+    database/                        → SQLite connection + migrations
 ```
 
-## Licença
+## License
 
 MIT

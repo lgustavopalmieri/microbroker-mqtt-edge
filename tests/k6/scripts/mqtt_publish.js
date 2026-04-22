@@ -6,7 +6,7 @@
  * hits the audit API to confirm all messages were persisted.
  *
  * ENV (set via docker-compose):
- *   BROKER_ADDR   – host:port of the MQTT broker  (default: broker:1883)
+ *   BROKER_ADDR   – host:port of the MQTT broker  (default: host.docker.internal:1883)
  *   BROKER_USER   – MQTT username                  (default: machine01)
  *   BROKER_PASS   – MQTT password                  (default: secret123)
  *   MQTT_TOPIC    – topic to publish to            (default: machine/status)

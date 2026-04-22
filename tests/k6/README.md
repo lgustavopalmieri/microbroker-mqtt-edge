@@ -1,53 +1,53 @@
-# Testes de Carga — k6 + MQTT
+# Load Tests — k6 + MQTT
 
-Testes de resiliência do broker usando [k6](https://k6.io) com a extensão [xk6-mqtt](https://github.com/pmalhaire/xk6-mqtt).
+Resilience tests for the broker using [k6](https://k6.io) with the [xk6-mqtt](https://github.com/pmalhaire/xk6-mqtt) extension.
 
-## Pré-requisitos
+## Prerequisites
 
-- Docker e Docker Compose
-- Broker já rodando no host (via `docker compose up -d` ou `go run ./cmd/main.go`)
+- Docker and Docker Compose
+- Broker already running on the host (via `docker compose up -d` or `go run ./cmd/main.go`)
 
-O k6 roda em container e se conecta ao broker via `host.docker.internal:1883`.
+The k6 container connects to the broker via `host.docker.internal:1883`.
 
-## Como rodar
+## How to Run
 
 ```bash
-# 50 mensagens (default)
+# 50 messages (default)
 ./tests/k6/run.sh
 
-# quantidade customizada
+# custom quantity
 ./tests/k6/run.sh 200
 ```
 
-## O que faz
+## What It Does
 
-1. Builda um k6 customizado com suporte a MQTT
-2. k6 conecta ao broker do host via `host.docker.internal:1883` (com auth), publica N mensagens QoS 1 no tópico `machine/status`
-3. Consulta a API `GET /audit/machine/status` e valida se todas as mensagens foram persistidas no SQLite
-4. Remove o container do k6
+1. Builds a k6 image with MQTT support
+2. k6 connects via MQTT (with auth), publishes N messages QoS 1 to the `machine/status` topic
+3. Queries the `GET /audit/machine/status` API and validates that all messages were persisted to SQLite
+4. Removes the k6 container
 
-## Estrutura
+## Structure
 
 ```
 tests/k6/
 ├── Dockerfile.k6              # k6 v1.7.1 + xk6-mqtt v0.40.3
-├── docker-compose.k6.yml      # broker + k6 isolados
-├── run.sh                     # orquestrador do teste
+├── docker-compose.k6.yml      # k6 container only
+├── run.sh                     # test orchestrator
 └── scripts/
-    └── mqtt_publish.js        # script k6 que publica via MQTT
+    └── mqtt_publish.js        # k6 script that publishes via MQTT
 ```
 
-## Variáveis de ambiente (docker-compose)
+## Environment Variables (docker-compose)
 
-| Variável | Default | Descrição |
+| Variable | Default | Description |
 |---|---|---|
-| `BROKER_ADDR` | `host.docker.internal:1883` | Endereço do broker |
-| `BROKER_USER` | `machine01` | Usuário MQTT |
-| `BROKER_PASS` | `secret123` | Senha MQTT |
-| `MQTT_TOPIC` | `machine/status` | Tópico de publicação |
-| `MESSAGE_COUNT` | `50` | Mensagens por execução |
+| `BROKER_ADDR` | `host.docker.internal:1883` | Broker address |
+| `BROKER_USER` | `machine01` | MQTT username |
+| `BROKER_PASS` | `secret123` | MQTT password |
+| `MQTT_TOPIC` | `machine/status` | Publication topic |
+| `MESSAGE_COUNT` | `50` | Messages per run |
 
-## Saída esperada
+## Expected Output
 
 ```
 ==> Running k6 (MESSAGE_COUNT=50)...
