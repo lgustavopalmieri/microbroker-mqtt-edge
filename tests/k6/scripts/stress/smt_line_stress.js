@@ -131,11 +131,10 @@ function ensureConnected() {
   }
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    // Stagger: VU N waits N * 1s before first attempt.
-    // The broker needs time to fully complete each CONNECT/CONNACK
-    // handshake and register the client before the next one arrives.
+    // Small stagger to avoid all VUs hitting the accept loop at the exact
+    // same instant. 200ms per VU is enough for the TCP+CONNECT handshake.
     if (attempt === 1) {
-      sleep(__VU * 1);
+      sleep(__VU * 0.2);
     }
 
     try {

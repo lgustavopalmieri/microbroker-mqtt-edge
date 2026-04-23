@@ -39,7 +39,9 @@ tests/k6/
         ├── config.js          # shared broker config
         ├── payloads.js        # realistic payload generators per machine type
         ├── smt_line_stress.js # stress test — 5 clients, 5 topics, ramping
-        └── run_stress.sh      # stress test orchestrator + verification
+        ├── run_stress.sh      # stress test orchestrator + verification
+        ├── burst_1k.js        # burst test — 5 clients, max throughput, no sleep
+        └── run_burst.sh       # burst test orchestrator (2 min drain wait)
 ```
 
 ## Environment Variables (docker-compose)
@@ -108,3 +110,21 @@ Total baseline: ~60 msg/sec. Rates scale with `RATE_MULTIPLIER`.
 ### Verification
 
 After k6 finishes, the script queries `GET /audit-count/{topic}` for each topic and reports how many messages were persisted. Compare the `published_total` counter from k6 output with the total persisted count — they should match.
+
+## Burst Test — 1,000 msg/sec Target
+
+Pure throughput test. 5 clients publishing as fast as possible with zero sleep — the only throttle is the QoS 1 PUBACK round-trip. Tests whether the broker can sustain 1,000+ msg/sec.
+
+### Test Phases (~90s)
+
+1. Connect (10s) — ramp 0 → 5 VUs
+2. Full blast (60s) — all 5 VUs, batches of 10, no sleep
+3. Cool-down (20s) — ramp 5 → 0 VUs
+
+After the test, waits 2 minutes for SQLite to drain all queued messages before verifying.
+
+### How to Run
+
+```bash
+./tests/k6/scripts/stress/run_burst.sh
+```

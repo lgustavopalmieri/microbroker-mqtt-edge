@@ -78,7 +78,8 @@ docker compose -f "$K6_DIR/docker-compose.k6.yml" run --rm \
 
 echo ""
 echo "==> Waiting for broker to flush pending writes..."
-sleep 5
+echo "    (SQLite single-writer needs time to drain all queues)"
+sleep 30
 
 # ── Verify persistence ───────────────────────────────────────
 
