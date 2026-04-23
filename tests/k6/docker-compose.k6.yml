@@ -1,0 +1,17 @@
+services:
+  k6:
+    build:
+      context: .
+      dockerfile: Dockerfile.k6
+    container_name: k6-mqtt-runner
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      BROKER_ADDR: "host.docker.internal:1883"
+      BROKER_USER: "machine01"
+      BROKER_PASS: "secret123"
+      MQTT_TOPIC: "machine/status"
+      MESSAGE_COUNT: "50"
+    volumes:
+      - ./scripts:/scripts:ro
+    entrypoint: ["k6", "run", "/scripts/mqtt_publish.js"]
