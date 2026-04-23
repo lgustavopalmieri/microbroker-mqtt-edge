@@ -15,6 +15,7 @@ type Record struct {
 // Implementations must be safe for concurrent use.
 type Reader interface {
 	GetByTopic(ctx context.Context, topic string) ([]Record, error)
+	CountByTopic(ctx context.Context, topic string) (int64, error)
 }
 
 // Logger defines the logging interface used by the audit package.

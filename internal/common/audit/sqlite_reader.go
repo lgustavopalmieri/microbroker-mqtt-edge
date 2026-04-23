@@ -37,3 +37,14 @@ func (r *SQLiteReader) GetByTopic(ctx context.Context, topic string) ([]Record, 
 
 	return records, rows.Err()
 }
+
+// CountByTopic returns the number of records for a given topic.
+func (r *SQLiteReader) CountByTopic(ctx context.Context, topic string) (int64, error) {
+	var count int64
+	err := r.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM raw_data WHERE topic = ?`, topic).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("audit count: %w", err)
+	}
+	return count, nil
+}

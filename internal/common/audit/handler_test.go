@@ -25,6 +25,10 @@ func (m *mockReader) GetByTopic(_ context.Context, _ string) ([]audit.Record, er
 	return m.records, m.err
 }
 
+func (m *mockReader) CountByTopic(_ context.Context, _ string) (int64, error) {
+	return int64(len(m.records)), m.err
+}
+
 type nopLogger struct{}
 
 func (nopLogger) Info(string, ...any)  {}

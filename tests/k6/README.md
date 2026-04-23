@@ -32,9 +32,14 @@ The k6 container connects to the broker via `host.docker.internal:1883`.
 tests/k6/
 ├── Dockerfile.k6              # k6 v1.7.1 + xk6-mqtt v0.40.3
 ├── docker-compose.k6.yml      # k6 container only
-├── run.sh                     # test orchestrator
+├── run.sh                     # smoke test orchestrator
 └── scripts/
-    └── mqtt_publish.js        # k6 script that publishes via MQTT
+    ├── mqtt_publish.js        # smoke test — single client, N messages
+    └── stress/
+        ├── config.js          # shared broker config
+        ├── payloads.js        # realistic payload generators per machine type
+        ├── smt_line_stress.js # stress test — 5 clients, 5 topics, ramping
+        └── run_stress.sh      # stress test orchestrator + verification
 ```
 
 ## Environment Variables (docker-compose)
@@ -59,3 +64,47 @@ tests/k6/
     Got:      50
 ==> ✅ PASS — all 50 messages persisted correctly.
 ```
+
+## Stress Test — SMT Line Simulation
+
+Simulates a complete SMT (Surface Mount Technology) production line with 5 machines publishing simultaneously to 5 different topics.
+
+### Machine Profiles
+
+| VU | Machine | Topic | Base rate |
+|---|---|---|---|
+| 1 | Solder Paste Printer | `machine/status` | 10 msg/sec |
+| 2 | Pick-and-Place (chipshooter) | `machine/production` | 20 msg/sec |
+| 3 | Reflow Oven | `machine/alarm` | 5 msg/sec |
+| 4 | AOI Inspection | `machine/oee` | 10 msg/sec |
+| 5 | Line Controller / MES | `machine/counter` | 15 msg/sec |
+
+Total baseline: ~60 msg/sec. Rates scale with `RATE_MULTIPLIER`.
+
+### Test Phases (~3 min)
+
+1. Warm-up (30s) — ramp 0 → 5 VUs
+2. Sustained (60s) — steady at baseline rate
+3. Spike (30s) — all VUs active
+4. Recovery (30s) — back to baseline
+5. Cool-down (30s) — ramp 5 → 0 VUs
+
+### How to Run
+
+```bash
+# baseline (~60 msg/sec)
+./tests/k6/scripts/stress/run_stress.sh
+
+# 2x rate (~120 msg/sec)
+./tests/k6/scripts/stress/run_stress.sh 2
+
+# 5x rate (~300 msg/sec)
+./tests/k6/scripts/stress/run_stress.sh 5
+
+# 10x rate (~600 msg/sec) — push the limits
+./tests/k6/scripts/stress/run_stress.sh 10
+```
+
+### Verification
+
+After k6 finishes, the script queries `GET /audit-count/{topic}` for each topic and reports how many messages were persisted. Compare the `published_total` counter from k6 output with the total persisted count — they should match.
