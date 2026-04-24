@@ -1,0 +1,37 @@
+# Version control
+.git
+.gitignore
+
+# IDE and tooling
+.kiro
+.vscode
+.idea
+*.swp
+*.swo
+
+# Documentation
+README.md
+LICENSE
+AGENTS.md
+docs/
+
+# Tests
+tests/
+**/*_test.go
+**/mocks/
+
+# Docker files (avoid recursive builds)
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+
+# Environment files
+.env
+.env.*
+
+# Go workspace
+go.work
+go.work.sum
+
+# CI/CD
+.github/
