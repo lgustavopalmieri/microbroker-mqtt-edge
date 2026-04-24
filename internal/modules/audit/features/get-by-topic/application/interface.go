@@ -7,12 +7,10 @@ import (
 	"microbroker-mqtt-edge/internal/modules/audit/domain"
 )
 
-// Repository defines the outbound port for reading persisted audit records.
-// Implementations must be safe for concurrent use.
+// Repository defines the outbound port for reading audit records by topic.
 type Repository interface {
 	GetByTopic(ctx context.Context, topic string) ([]domain.Record, error)
-	CountByTopic(ctx context.Context, topic string) (int64, error)
 }
 
-// Logger is the observability contract used by the query use case.
+// Logger is the observability contract used by this use case.
 type Logger = observability.Logger

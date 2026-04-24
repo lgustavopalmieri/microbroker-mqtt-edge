@@ -11,7 +11,7 @@ func GracefulShutdown(modules *Modules, servers *Servers, logger observability.L
 	logger.Info("shutting down...")
 
 	modules.Server.Close()
-	servers.HTTPServer().Shutdown(context.Background())
+	_ = servers.HTTPServer().Shutdown(context.Background())
 	modules.FanOut.Close()
 	modules.ClientMgr.CloseAll()
 

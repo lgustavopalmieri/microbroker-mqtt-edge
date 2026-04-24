@@ -7,9 +7,14 @@ import (
 
 	"microbroker-mqtt-edge/cmd/broker/config"
 	"microbroker-mqtt-edge/internal/common/observability"
-	"microbroker-mqtt-edge/internal/modules/audit/features/query/adapters/inbound/http_handler"
-	auditdb "microbroker-mqtt-edge/internal/modules/audit/features/query/adapters/outbound/database"
-	"microbroker-mqtt-edge/internal/modules/audit/features/query/application"
+
+	countHandler "microbroker-mqtt-edge/internal/modules/audit/features/count-by-topic/adapters/inbound/http_handler"
+	countDB "microbroker-mqtt-edge/internal/modules/audit/features/count-by-topic/adapters/outbound/database"
+	countApp "microbroker-mqtt-edge/internal/modules/audit/features/count-by-topic/application"
+
+	getHandler "microbroker-mqtt-edge/internal/modules/audit/features/get-by-topic/adapters/inbound/http_handler"
+	getDB "microbroker-mqtt-edge/internal/modules/audit/features/get-by-topic/adapters/outbound/database"
+	getApp "microbroker-mqtt-edge/internal/modules/audit/features/get-by-topic/application"
 )
 
 // Servers holds the running TCP and HTTP servers.
@@ -34,13 +39,20 @@ func StartServers(ctx context.Context, cancel context.CancelFunc, cfg *config.Co
 		}
 	}()
 
-	// Audit — wire feature: query
-	auditRepo := auditdb.NewSQLiteRepository(db)
-	auditUseCase := application.NewUseCase(auditRepo, logger)
-	auditHandler := http_handler.NewHandler(auditUseCase)
-
+	// Audit features
 	mux := http.NewServeMux()
-	auditHandler.RegisterRoutes(mux)
+
+	// Feature: get-by-topic
+	getRepo := getDB.NewSQLiteRepository(db)
+	getUC := getApp.NewUseCase(getRepo, logger)
+	getH := getHandler.NewHandler(getUC)
+	getH.RegisterRoutes(mux)
+
+	// Feature: count-by-topic
+	countRepo := countDB.NewSQLiteRepository(db)
+	countUC := countApp.NewUseCase(countRepo, logger)
+	countH := countHandler.NewHandler(countUC)
+	countH.RegisterRoutes(mux)
 
 	httpServer := &http.Server{Addr: cfg.HTTPAddress(), Handler: mux}
 	go func() {
