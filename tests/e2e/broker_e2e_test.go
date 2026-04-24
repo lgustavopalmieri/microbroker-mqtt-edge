@@ -8,14 +8,16 @@ import (
 	"testing"
 	"time"
 
-	"microbroker-mqtt-edge/internal/modules/dispatch"
-	dispatchdomain "microbroker-mqtt-edge/internal/modules/dispatch/domain"
+	"microbroker-mqtt-edge/internal/common/message"
+	"microbroker-mqtt-edge/internal/common/observability"
+	"microbroker-mqtt-edge/internal/modules/auth"
+	"microbroker-mqtt-edge/internal/modules/connection"
+	connectiondomain "microbroker-mqtt-edge/internal/modules/connection/domain"
 	"microbroker-mqtt-edge/internal/modules/ingestion/adapters/outbound/database"
 	"microbroker-mqtt-edge/internal/modules/ingestion/application"
-	ingestiondomain "microbroker-mqtt-edge/internal/modules/ingestion/domain"
+	"microbroker-mqtt-edge/internal/modules/processing"
+	processingdomain "microbroker-mqtt-edge/internal/modules/processing/domain"
 	"microbroker-mqtt-edge/internal/modules/protocol"
-	"microbroker-mqtt-edge/internal/modules/session"
-	sessiondomain "microbroker-mqtt-edge/internal/modules/session/domain"
 	platformdb "microbroker-mqtt-edge/internal/platform/database"
 
 	"github.com/stretchr/testify/assert"
@@ -26,40 +28,34 @@ import (
 // helpers
 // ---------------------------------------------------------------------------
 
-type nopLogger struct{}
-
-func (nopLogger) Info(string, ...any)  {}
-func (nopLogger) Error(string, ...any) {}
-func (nopLogger) Warn(string, ...any)  {}
-func (nopLogger) Debug(string, ...any) {}
-
 // collectWorker is a mock Worker that records every message it receives.
 type collectWorker struct {
 	mu       sync.Mutex
-	received []dispatchdomain.Message
+	received []message.Message
 }
 
 func (w *collectWorker) Name() string { return "collector" }
-func (w *collectWorker) Process(_ context.Context, msg dispatchdomain.Message) error {
+func (w *collectWorker) Process(_ context.Context, msg message.Message) error {
 	w.mu.Lock()
 	w.received = append(w.received, msg)
 	w.mu.Unlock()
 	return nil
 }
 func (w *collectWorker) Close() error { return nil }
-func (w *collectWorker) messages() []dispatchdomain.Message {
+func (w *collectWorker) messages() []message.Message {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	cp := make([]dispatchdomain.Message, len(w.received))
+	cp := make([]message.Message, len(w.received))
 	copy(cp, w.received)
 	return cp
 }
 
 // broker bundles all components for a running test broker.
 type broker struct {
-	server *session.Server
+	server *connection.Server
 	store  *database.SQLiteRepository
 	worker *collectWorker
+	fanout *processing.FanOut
 	cancel context.CancelFunc
 	addr   string
 	topics []string
@@ -67,6 +63,8 @@ type broker struct {
 
 func setupBroker(t *testing.T, topics []string) *broker {
 	t.Helper()
+
+	logger := observability.NopLogger{}
 
 	// SQLite :memory: + migrations
 	db, err := platformdb.NewSQLiteConnection(":memory:")
@@ -78,62 +76,37 @@ func setupBroker(t *testing.T, topics []string) *broker {
 
 	store := database.NewSQLiteRepository(db)
 
-	// Channels
-	sessionChan := make(chan session.Message, 1000)
-	ingestChan := make(chan ingestiondomain.Message, 1000)
-	dispatchChan := make(chan dispatchdomain.Message, 1000)
+	// Channels — no bridge needed
+	msgChan := make(chan message.Message, 1000)
+	processChan := make(chan message.Message, 1000)
 
 	ctx, cancel := context.WithCancel(context.Background())
-
-	// Bridge: session.Message → ingestion/domain.Message
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case msg, ok := <-sessionChan:
-				if !ok {
-					return
-				}
-				select {
-				case ingestChan <- ingestiondomain.Message{
-					ClientID:  msg.ClientID,
-					Topic:     msg.Topic,
-					Payload:   msg.Payload,
-					Timezone:  msg.Timezone,
-					Timestamp: msg.Timestamp,
-				}:
-				case <-ctx.Done():
-					return
-				}
-			}
-		}
-	}()
 
 	// Worker
 	w := &collectWorker{}
 
-	// Pipeline
-	pipeline := application.NewPipeline(topics, store, dispatchChan, 1000, nopLogger{})
-	go pipeline.Start(ctx, ingestChan)
+	// Pipeline (ingestion)
+	pipeline := application.NewPipeline(topics, store, processChan, 1000, logger)
+	go pipeline.Start(ctx, msgChan)
 
-	// Dispatcher
-	dispatcher := dispatch.NewDispatcher(dispatchChan, []dispatchdomain.Worker{w}, nopLogger{})
-	go dispatcher.Start(ctx)
+	// FanOut (processing)
+	fanout := processing.NewFanOut(processChan, []processingdomain.Worker{w}, logger)
+	go fanout.Start(ctx)
 
-	// Session server
-	topicReg, err := sessiondomain.NewTopicRegistry(topics)
+	// Auth
+	authenticator := auth.NewEnvAuthenticator("admin", "secret")
+
+	// Connection server
+	topicReg, err := connectiondomain.NewTopicRegistry(topics)
 	require.NoError(t, err)
 
-	connMgr := session.NewConnectionManager(5)
-	auth := session.NewEnvAuthenticator("admin", "secret")
-	srv := session.NewServer("127.0.0.1:0", connMgr, auth, topicReg, sessionChan, "UTC", nopLogger{})
+	clientMgr := connection.NewClientManager(5)
+	srv := connection.NewServer("127.0.0.1:0", clientMgr, authenticator, topicReg, msgChan, "UTC", logger)
 
 	go func() {
 		srv.ListenAndServe(ctx)
 	}()
 
-	// Wait for listener to be ready via the server's ready channel
 	select {
 	case <-srv.Ready():
 	case <-time.After(3 * time.Second):
@@ -144,13 +117,14 @@ func setupBroker(t *testing.T, topics []string) *broker {
 	t.Cleanup(func() {
 		cancel()
 		srv.Close()
-		dispatcher.Close()
+		fanout.Close()
 	})
 
 	return &broker{
 		server: srv,
 		store:  store,
 		worker: w,
+		fanout: fanout,
 		cancel: cancel,
 		addr:   srv.Addr().String(),
 		topics: topics,
@@ -190,7 +164,7 @@ func publishMessage(t *testing.T, conn net.Conn, topic string, payload []byte, q
 	}
 }
 
-// --- packet builders (same logic as handler_test.go, using exported protocol funcs) ---
+// --- packet builders ---
 
 func buildConnectPacket(clientID, username, password string, keepAlive uint16) []byte {
 	var payload []byte
@@ -251,7 +225,7 @@ func readPuback(t *testing.T, conn net.Conn, expectedID uint16) {
 }
 
 // waitForWorkerMessages polls the worker until it has at least n messages or timeout.
-func waitForWorkerMessages(t *testing.T, w *collectWorker, n int, timeout time.Duration) []dispatchdomain.Message {
+func waitForWorkerMessages(t *testing.T, w *collectWorker, n int, timeout time.Duration) []message.Message {
 	t.Helper()
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
@@ -276,18 +250,15 @@ func TestE2E_HappyPath_FullPipeline(t *testing.T) {
 	conn := connectClient(t, b.addr, "device-01", "admin", "secret")
 	defer conn.Close()
 
-	// Publish 3 messages to machine/status, 2 to machine/alarm
 	publishMessage(t, conn, "machine/status", []byte(`{"temp":20}`), 0, 0)
 	publishMessage(t, conn, "machine/status", []byte(`{"temp":21}`), 0, 0)
 	publishMessage(t, conn, "machine/alarm", []byte(`{"code":1}`), 1, 1)
 	publishMessage(t, conn, "machine/status", []byte(`{"temp":22}`), 0, 0)
 	publishMessage(t, conn, "machine/alarm", []byte(`{"code":2}`), 1, 2)
 
-	// Wait for worker to receive all 5
 	workerMsgs := waitForWorkerMessages(t, b.worker, 5, 5*time.Second)
 	assert.Len(t, workerMsgs, 5)
 
-	// Verify SQLite
 	ctx := context.Background()
 	statusMsgs, err := b.store.GetByTopic(ctx, "machine/status")
 	require.NoError(t, err)
@@ -300,7 +271,6 @@ func TestE2E_HappyPath_FullPipeline(t *testing.T) {
 	require.NoError(t, err)
 	assert.Len(t, alarmMsgs, 2)
 
-	// Verify clientID
 	for _, m := range statusMsgs {
 		assert.Equal(t, "device-01", m.ClientID)
 	}
@@ -330,11 +300,9 @@ func TestE2E_MultipleClientsSimultaneous(t *testing.T) {
 	}
 	wg.Wait()
 
-	// Wait for all messages to flow through
 	workerMsgs := waitForWorkerMessages(t, b.worker, total, 10*time.Second)
 	assert.GreaterOrEqual(t, len(workerMsgs), total)
 
-	// Verify SQLite has all messages
 	ctx := context.Background()
 	dbMsgs, err := b.store.GetByTopic(ctx, "data/sensor")
 	require.NoError(t, err)
@@ -344,7 +312,6 @@ func TestE2E_MultipleClientsSimultaneous(t *testing.T) {
 func TestE2E_SixthClientRejected(t *testing.T) {
 	b := setupBroker(t, []string{"t/1"})
 
-	// Connect 5 clients
 	conns := make([]net.Conn, 5)
 	for i := 0; i < 5; i++ {
 		clientID := "c" + string(rune('0'+i))
@@ -352,25 +319,20 @@ func TestE2E_SixthClientRejected(t *testing.T) {
 		defer conns[i].Close()
 	}
 
-	// 6th client: TCP connects but server closes it before CONNACK
 	conn6, err := net.DialTimeout("tcp", b.addr, 2*time.Second)
 	require.NoError(t, err)
 	defer conn6.Close()
 
 	conn6.Write(buildConnectPacket("c5", "admin", "secret", 60))
 
-	// Should get EOF or connection reset (server closes before/after CONNACK)
 	conn6.SetReadDeadline(time.Now().Add(2 * time.Second))
 	buf := make([]byte, 4)
 	n, err := io.ReadFull(conn6, buf)
 	if err == nil && n == 4 {
-		// Server might send CONNACK with "unavailable" before closing
 		rc := protocol.ConnackReturnCode(buf[3])
 		assert.Equal(t, protocol.ConnRefusedUnavailable, rc)
 	}
-	// Either way, the 6th client is not accepted
 
-	// Original 5 clients can still publish
 	for i := 0; i < 5; i++ {
 		publishMessage(t, conns[i], "t/1", []byte(`{"i":`+string(rune('0'+i))+`}`), 0, 0)
 	}
@@ -387,22 +349,18 @@ func TestE2E_SixthClientRejected(t *testing.T) {
 func TestE2E_AuthFailureDoesNotPollutePipeline(t *testing.T) {
 	b := setupBroker(t, []string{"t/1"})
 
-	// Bad auth
 	conn, rc := connectClientRaw(t, b.addr, "bad-client", "admin", "wrong-password")
 	assert.Equal(t, protocol.ConnRefusedBadAuth, rc)
 	conn.Close()
 
-	// Give time for any accidental pipeline activity
 	time.Sleep(200 * time.Millisecond)
 
-	// Verify nothing in DB or worker
 	ctx := context.Background()
 	dbMsgs, err := b.store.GetByTopic(ctx, "t/1")
 	require.NoError(t, err)
 	assert.Empty(t, dbMsgs)
 	assert.Empty(t, b.worker.messages())
 
-	// Good client works fine after
 	conn2 := connectClient(t, b.addr, "good-client", "admin", "secret")
 	defer conn2.Close()
 	publishMessage(t, conn2, "t/1", []byte(`{"ok":true}`), 0, 0)
@@ -421,21 +379,15 @@ func TestE2E_GracefulShutdownUnderLoad(t *testing.T) {
 	conn := connectClient(t, b.addr, "loader", "admin", "secret")
 	defer conn.Close()
 
-	// Publish 5 messages
 	for i := 0; i < 5; i++ {
 		publishMessage(t, conn, "t/1", []byte(`{"seq":`+string(rune('0'+i))+`}`), 0, 0)
 	}
 
-	// Wait for at least some messages to be processed
 	waitForWorkerMessages(t, b.worker, 5, 5*time.Second)
 
-	// Cancel context (graceful shutdown)
 	b.cancel()
-
-	// Give time for shutdown
 	time.Sleep(200 * time.Millisecond)
 
-	// All 5 messages should be in the DB
 	ctx := context.Background()
 	dbMsgs, err := b.store.GetByTopic(ctx, "t/1")
 	require.NoError(t, err)
@@ -448,32 +400,23 @@ func TestE2E_DisallowedTopicNotPersisted(t *testing.T) {
 	conn := connectClient(t, b.addr, "device-01", "admin", "secret")
 	defer conn.Close()
 
-	// Publish to allowed topic
 	publishMessage(t, conn, "allowed/topic", []byte(`{"ok":1}`), 0, 0)
-
-	// Publish to disallowed topic
 	publishMessage(t, conn, "forbidden/topic", []byte(`{"bad":1}`), 0, 0)
 
-	// Wait for the allowed message to arrive
 	waitForWorkerMessages(t, b.worker, 1, 5*time.Second)
-
-	// Give extra time for any accidental processing of the disallowed message
 	time.Sleep(200 * time.Millisecond)
 
 	ctx := context.Background()
 
-	// Allowed topic: 1 message
 	allowedMsgs, err := b.store.GetByTopic(ctx, "allowed/topic")
 	require.NoError(t, err)
 	assert.Len(t, allowedMsgs, 1)
 	assert.Equal(t, []byte(`{"ok":1}`), allowedMsgs[0].Payload)
 
-	// Disallowed topic: 0 messages
 	forbiddenMsgs, err := b.store.GetByTopic(ctx, "forbidden/topic")
 	require.NoError(t, err)
 	assert.Empty(t, forbiddenMsgs)
 
-	// Client still connected — publish another allowed message
 	publishMessage(t, conn, "allowed/topic", []byte(`{"ok":2}`), 0, 0)
 	waitForWorkerMessages(t, b.worker, 2, 5*time.Second)
 

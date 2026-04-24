@@ -8,30 +8,31 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"microbroker-mqtt-edge/internal/modules/ingestion/domain"
+	"microbroker-mqtt-edge/internal/common/message"
+	"microbroker-mqtt-edge/internal/common/observability"
 )
 
 func TestPipeline_RoutesToCorrectQueue(t *testing.T) {
 	store := &mockStore{}
-	dispatchChan := make(chan domain.Message, 20)
+	dispatchChan := make(chan message.Message, 20)
 	topics := []string{"topic/a", "topic/b"}
 
-	pipeline := NewPipeline(topics, store, dispatchChan, 10, NopLogger{})
+	pipeline := NewPipeline(topics, store, dispatchChan, 10, observability.NopLogger{})
 	assert.Equal(t, 2, pipeline.QueueCount())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	inputChan := make(chan domain.Message, 10)
+	inputChan := make(chan message.Message, 10)
 	go pipeline.Start(ctx, inputChan)
 
 	// Send messages to different topics
-	inputChan <- domain.Message{ClientID: "c1", Topic: "topic/a", Payload: []byte("a1"), Timestamp: time.Now()}
-	inputChan <- domain.Message{ClientID: "c1", Topic: "topic/b", Payload: []byte("b1"), Timestamp: time.Now()}
-	inputChan <- domain.Message{ClientID: "c1", Topic: "topic/a", Payload: []byte("a2"), Timestamp: time.Now()}
+	inputChan <- message.Message{ClientID: "c1", Topic: "topic/a", Payload: []byte("a1"), Timestamp: time.Now()}
+	inputChan <- message.Message{ClientID: "c1", Topic: "topic/b", Payload: []byte("b1"), Timestamp: time.Now()}
+	inputChan <- message.Message{ClientID: "c1", Topic: "topic/a", Payload: []byte("a2"), Timestamp: time.Now()}
 
 	// Collect dispatched messages
-	var dispatched []domain.Message
+	var dispatched []message.Message
 	for i := 0; i < 3; i++ {
 		select {
 		case msg := <-dispatchChan:
@@ -50,19 +51,19 @@ func TestPipeline_RoutesToCorrectQueue(t *testing.T) {
 
 func TestPipeline_UnknownTopicDiscarded(t *testing.T) {
 	store := &mockStore{}
-	dispatchChan := make(chan domain.Message, 10)
+	dispatchChan := make(chan message.Message, 10)
 	topics := []string{"topic/a"}
 
-	pipeline := NewPipeline(topics, store, dispatchChan, 10, NopLogger{})
+	pipeline := NewPipeline(topics, store, dispatchChan, 10, observability.NopLogger{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	inputChan := make(chan domain.Message, 10)
+	inputChan := make(chan message.Message, 10)
 	go pipeline.Start(ctx, inputChan)
 
 	// Send to unknown topic
-	inputChan <- domain.Message{ClientID: "c1", Topic: "unknown/topic", Payload: []byte("data"), Timestamp: time.Now()}
+	inputChan <- message.Message{ClientID: "c1", Topic: "unknown/topic", Payload: []byte("data"), Timestamp: time.Now()}
 
 	// Should NOT appear in dispatch
 	select {
@@ -78,22 +79,22 @@ func TestPipeline_UnknownTopicDiscarded(t *testing.T) {
 
 func TestPipeline_MultipleTopicsSimultaneously(t *testing.T) {
 	store := &mockStore{}
-	dispatchChan := make(chan domain.Message, 50)
+	dispatchChan := make(chan message.Message, 50)
 	topics := []string{"t/1", "t/2", "t/3"}
 
-	pipeline := NewPipeline(topics, store, dispatchChan, 20, NopLogger{})
+	pipeline := NewPipeline(topics, store, dispatchChan, 20, observability.NopLogger{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	inputChan := make(chan domain.Message, 50)
+	inputChan := make(chan message.Message, 50)
 	go pipeline.Start(ctx, inputChan)
 
 	// Send 5 messages per topic
 	total := 0
 	for _, topic := range topics {
 		for i := 0; i < 5; i++ {
-			inputChan <- domain.Message{
+			inputChan <- message.Message{
 				ClientID:  "c1",
 				Topic:     topic,
 				Payload:   []byte("data"),
@@ -117,13 +118,13 @@ func TestPipeline_MultipleTopicsSimultaneously(t *testing.T) {
 
 func TestPipeline_GracefulShutdown(t *testing.T) {
 	store := &mockStore{}
-	dispatchChan := make(chan domain.Message, 10)
+	dispatchChan := make(chan message.Message, 10)
 	topics := []string{"topic/a"}
 
-	pipeline := NewPipeline(topics, store, dispatchChan, 10, NopLogger{})
+	pipeline := NewPipeline(topics, store, dispatchChan, 10, observability.NopLogger{})
 
 	ctx, cancel := context.WithCancel(context.Background())
-	inputChan := make(chan domain.Message, 10)
+	inputChan := make(chan message.Message, 10)
 
 	done := make(chan struct{})
 	go func() {
@@ -144,18 +145,18 @@ func TestPipeline_GracefulShutdown(t *testing.T) {
 func TestPipeline_MessagePersistedBeforeDispatch(t *testing.T) {
 	// This test verifies the critical invariant: save THEN forward
 	store := &mockStore{}
-	dispatchChan := make(chan domain.Message, 10)
+	dispatchChan := make(chan message.Message, 10)
 	topics := []string{"topic/a"}
 
-	pipeline := NewPipeline(topics, store, dispatchChan, 10, NopLogger{})
+	pipeline := NewPipeline(topics, store, dispatchChan, 10, observability.NopLogger{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	inputChan := make(chan domain.Message, 10)
+	inputChan := make(chan message.Message, 10)
 	go pipeline.Start(ctx, inputChan)
 
-	msg := domain.Message{ClientID: "c1", Topic: "topic/a", Payload: []byte("critical"), Timestamp: time.Now()}
+	msg := message.Message{ClientID: "c1", Topic: "topic/a", Payload: []byte("critical"), Timestamp: time.Now()}
 	inputChan <- msg
 
 	// Wait for dispatch

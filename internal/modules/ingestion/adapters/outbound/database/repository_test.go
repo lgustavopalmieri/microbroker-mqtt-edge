@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"microbroker-mqtt-edge/internal/modules/ingestion/domain"
+	"microbroker-mqtt-edge/internal/common/message"
 	"microbroker-mqtt-edge/internal/platform/database"
 )
 
@@ -37,8 +37,8 @@ func newTestRepository(t *testing.T) (*SQLiteRepository, func()) {
 	return repo, cleanup
 }
 
-func msgFactory(overrides ...func(*domain.Message)) domain.Message {
-	msg := domain.Message{
+func msgFactory(overrides ...func(*message.Message)) message.Message {
+	msg := message.Message{
 		ClientID:  "test-client",
 		Topic:     "machine/status",
 		Payload:   []byte(`{"temp":42}`),
@@ -83,7 +83,7 @@ func TestSQLiteRepository_MultipleInserts_PreserveOrder(t *testing.T) {
 	topic := "machine/production"
 
 	for i := 0; i < 10; i++ {
-		msg := msgFactory(func(m *domain.Message) {
+		msg := msgFactory(func(m *message.Message) {
 			m.Topic = topic
 			m.Payload = []byte(fmt.Sprintf(`{"seq":%d}`, i))
 			m.Timestamp = time.Date(2026, 4, 21, 12, 0, i, 0, time.UTC)
@@ -115,7 +115,7 @@ func TestSQLiteRepository_ConcurrentWrites(t *testing.T) {
 		go func(goroutineID int) {
 			defer wg.Done()
 			for i := 0; i < 10; i++ {
-				msg := msgFactory(func(m *domain.Message) {
+				msg := msgFactory(func(m *message.Message) {
 					m.Topic = fmt.Sprintf("topic/%d", goroutineID)
 					m.Payload = []byte(fmt.Sprintf(`{"g":%d,"i":%d}`, goroutineID, i))
 					m.Timestamp = time.Now()
@@ -156,9 +156,9 @@ func TestSQLiteRepository_GetByTopic_FiltersByTopic(t *testing.T) {
 
 	ctx := context.Background()
 
-	repo.SaveRawData(ctx, msgFactory(func(m *domain.Message) { m.Topic = "topic/a"; m.Payload = []byte("a1") }))
-	repo.SaveRawData(ctx, msgFactory(func(m *domain.Message) { m.Topic = "topic/b"; m.Payload = []byte("b1") }))
-	repo.SaveRawData(ctx, msgFactory(func(m *domain.Message) { m.Topic = "topic/a"; m.Payload = []byte("a2") }))
+	repo.SaveRawData(ctx, msgFactory(func(m *message.Message) { m.Topic = "topic/a"; m.Payload = []byte("a1") }))
+	repo.SaveRawData(ctx, msgFactory(func(m *message.Message) { m.Topic = "topic/b"; m.Payload = []byte("b1") }))
+	repo.SaveRawData(ctx, msgFactory(func(m *message.Message) { m.Topic = "topic/a"; m.Payload = []byte("a2") }))
 
 	messagesA, err := repo.GetByTopic(ctx, "topic/a")
 	require.NoError(t, err)
@@ -176,7 +176,7 @@ func TestSQLiteRepository_BinaryPayload(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	msg := msgFactory(func(m *domain.Message) {
+	msg := msgFactory(func(m *message.Message) {
 		m.Payload = []byte("this is not json, just raw bytes 0xFF")
 	})
 

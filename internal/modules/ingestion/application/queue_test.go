@@ -10,19 +10,20 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"microbroker-mqtt-edge/internal/modules/ingestion/domain"
+	"microbroker-mqtt-edge/internal/common/message"
+	"microbroker-mqtt-edge/internal/common/observability"
 )
 
 // --- Mock Store for Queue Tests ---
 
 type mockStore struct {
 	mu      sync.Mutex
-	saved   []domain.Message
+	saved   []message.Message
 	saveErr error
-	saveFn  func(domain.Message) error // optional custom behavior
+	saveFn  func(message.Message) error // optional custom behavior
 }
 
-func (m *mockStore) SaveRawData(_ context.Context, msg domain.Message) error {
+func (m *mockStore) SaveRawData(_ context.Context, msg message.Message) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.saveFn != nil {
@@ -35,16 +36,16 @@ func (m *mockStore) SaveRawData(_ context.Context, msg domain.Message) error {
 	return nil
 }
 
-func (m *mockStore) GetByTopic(_ context.Context, _ string) ([]domain.Message, error) {
+func (m *mockStore) GetByTopic(_ context.Context, _ string) ([]message.Message, error) {
 	return nil, nil
 }
 
 func (m *mockStore) Close() error { return nil }
 
-func (m *mockStore) getSaved() []domain.Message {
+func (m *mockStore) getSaved() []message.Message {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	cp := make([]domain.Message, len(m.saved))
+	cp := make([]message.Message, len(m.saved))
 	copy(cp, m.saved)
 	return cp
 }
@@ -53,16 +54,16 @@ func (m *mockStore) getSaved() []domain.Message {
 
 func TestQueue_FIFOOrder(t *testing.T) {
 	store := &mockStore{}
-	dispatchChan := make(chan domain.Message, 10)
+	dispatchChan := make(chan message.Message, 10)
 	q := NewQueue("test/topic", 10)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go q.StartConsumer(ctx, store, dispatchChan, NopLogger{})
+	go q.StartConsumer(ctx, store, dispatchChan, observability.NopLogger{})
 
 	// Enqueue A, B, C
-	msgs := []domain.Message{
+	msgs := []message.Message{
 		{ClientID: "c1", Topic: "test/topic", Payload: []byte("A"), Timestamp: time.Now()},
 		{ClientID: "c1", Topic: "test/topic", Payload: []byte("B"), Timestamp: time.Now()},
 		{ClientID: "c1", Topic: "test/topic", Payload: []byte("C"), Timestamp: time.Now()},
@@ -91,14 +92,14 @@ func TestQueue_FIFOOrder(t *testing.T) {
 
 func TestQueue_ConsumerStopsOnContextCancel(t *testing.T) {
 	store := &mockStore{}
-	dispatchChan := make(chan domain.Message, 10)
+	dispatchChan := make(chan message.Message, 10)
 	q := NewQueue("test/topic", 10)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	done := make(chan struct{})
 	go func() {
-		q.StartConsumer(ctx, store, dispatchChan, NopLogger{})
+		q.StartConsumer(ctx, store, dispatchChan, observability.NopLogger{})
 		close(done)
 	}()
 
@@ -114,15 +115,15 @@ func TestQueue_ConsumerStopsOnContextCancel(t *testing.T) {
 
 func TestQueue_MessageForwardedAfterSave(t *testing.T) {
 	store := &mockStore{}
-	dispatchChan := make(chan domain.Message, 10)
+	dispatchChan := make(chan message.Message, 10)
 	q := NewQueue("test/topic", 10)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go q.StartConsumer(ctx, store, dispatchChan, NopLogger{})
+	go q.StartConsumer(ctx, store, dispatchChan, observability.NopLogger{})
 
-	msg := domain.Message{ClientID: "c1", Topic: "test/topic", Payload: []byte("data"), Timestamp: time.Now()}
+	msg := message.Message{ClientID: "c1", Topic: "test/topic", Payload: []byte("data"), Timestamp: time.Now()}
 	q.Enqueue(msg)
 
 	select {
@@ -141,7 +142,7 @@ func TestQueue_MessageForwardedAfterSave(t *testing.T) {
 func TestQueue_StoreError_SkipsForwarding_ContinuesProcessing(t *testing.T) {
 	callCount := 0
 	store := &mockStore{
-		saveFn: func(msg domain.Message) error {
+		saveFn: func(msg message.Message) error {
 			callCount++
 			if string(msg.Payload) == "fail" {
 				return errors.New("disk full")
@@ -149,18 +150,18 @@ func TestQueue_StoreError_SkipsForwarding_ContinuesProcessing(t *testing.T) {
 			return nil
 		},
 	}
-	dispatchChan := make(chan domain.Message, 10)
+	dispatchChan := make(chan message.Message, 10)
 	q := NewQueue("test/topic", 10)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go q.StartConsumer(ctx, store, dispatchChan, NopLogger{})
+	go q.StartConsumer(ctx, store, dispatchChan, observability.NopLogger{})
 
 	// Enqueue: good, fail, good
-	q.Enqueue(domain.Message{Payload: []byte("good1"), Timestamp: time.Now()})
-	q.Enqueue(domain.Message{Payload: []byte("fail"), Timestamp: time.Now()})
-	q.Enqueue(domain.Message{Payload: []byte("good2"), Timestamp: time.Now()})
+	q.Enqueue(message.Message{Payload: []byte("good1"), Timestamp: time.Now()})
+	q.Enqueue(message.Message{Payload: []byte("fail"), Timestamp: time.Now()})
+	q.Enqueue(message.Message{Payload: []byte("good2"), Timestamp: time.Now()})
 
 	// Should receive good1 and good2, NOT fail
 	var received []string
@@ -189,12 +190,12 @@ func TestQueue_Backpressure_EnqueueBlocks(t *testing.T) {
 	q := NewQueue("test/topic", 1)
 
 	// Fill the buffer
-	q.Enqueue(domain.Message{Payload: []byte("first"), Timestamp: time.Now()})
+	q.Enqueue(message.Message{Payload: []byte("first"), Timestamp: time.Now()})
 
 	// Second enqueue should block
 	blocked := make(chan struct{})
 	go func() {
-		q.Enqueue(domain.Message{Payload: []byte("second"), Timestamp: time.Now()})
+		q.Enqueue(message.Message{Payload: []byte("second"), Timestamp: time.Now()})
 		close(blocked)
 	}()
 

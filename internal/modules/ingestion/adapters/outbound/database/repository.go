@@ -7,7 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"microbroker-mqtt-edge/internal/modules/ingestion/domain"
+	"microbroker-mqtt-edge/internal/common/message"
+	ingestiondomain "microbroker-mqtt-edge/internal/modules/ingestion/domain"
 )
 
 // SQLiteRepository is the outbound adapter that implements ingestion.Store
@@ -26,13 +27,13 @@ func NewSQLiteRepository(db *sql.DB) *SQLiteRepository {
 
 // SaveRawData persists a single message in the raw_data table within a transaction.
 // Thread-safe: serializes concurrent calls via mutex (SQLite single-writer constraint).
-func (r *SQLiteRepository) SaveRawData(ctx context.Context, msg domain.Message) error {
+func (r *SQLiteRepository) SaveRawData(ctx context.Context, msg message.Message) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("%w: begin tx: %v", domain.ErrStoreFailure, err)
+		return fmt.Errorf("%w: begin tx: %v", ingestiondomain.ErrStoreFailure, err)
 	}
 	defer tx.Rollback()
 
@@ -46,18 +47,18 @@ func (r *SQLiteRepository) SaveRawData(ctx context.Context, msg domain.Message) 
 		string(msg.Payload),
 	)
 	if err != nil {
-		return fmt.Errorf("%w: insert: %v", domain.ErrStoreFailure, err)
+		return fmt.Errorf("%w: insert: %v", ingestiondomain.ErrStoreFailure, err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("%w: commit: %v", domain.ErrStoreFailure, err)
+		return fmt.Errorf("%w: commit: %v", ingestiondomain.ErrStoreFailure, err)
 	}
 
 	return nil
 }
 
 // GetByTopic retrieves all messages for a given topic, ordered by insertion (id ASC).
-func (r *SQLiteRepository) GetByTopic(ctx context.Context, topic string) ([]domain.Message, error) {
+func (r *SQLiteRepository) GetByTopic(ctx context.Context, topic string) ([]message.Message, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -69,9 +70,9 @@ func (r *SQLiteRepository) GetByTopic(ctx context.Context, topic string) ([]doma
 	}
 	defer rows.Close()
 
-	var messages []domain.Message
+	var messages []message.Message
 	for rows.Next() {
-		var msg domain.Message
+		var msg message.Message
 		var tsStr string
 		if err := rows.Scan(&msg.ClientID, &msg.Topic, &msg.Timezone, &tsStr, &msg.Payload); err != nil {
 			return nil, fmt.Errorf("scanning row: %w", err)
