@@ -3,7 +3,8 @@ package application
 import (
 	"context"
 
-	"microbroker-mqtt-edge/internal/modules/ingestion/domain"
+	"microbroker-mqtt-edge/internal/common/message"
+	"microbroker-mqtt-edge/internal/common/observability"
 )
 
 // Store defines the persistence contract for the ingestion pipeline.
@@ -11,28 +12,15 @@ import (
 type Store interface {
 	// SaveRawData persists a single message atomically.
 	// Must be safe for concurrent calls (implementations should serialize internally).
-	SaveRawData(ctx context.Context, msg domain.Message) error
+	SaveRawData(ctx context.Context, msg message.Message) error
 
 	// GetByTopic retrieves all messages for a given topic, ordered by insertion.
 	// Primarily used for testing and debugging.
-	GetByTopic(ctx context.Context, topic string) ([]domain.Message, error)
+	GetByTopic(ctx context.Context, topic string) ([]message.Message, error)
 
 	// Close releases adapter-specific resources (may be no-op if connection is shared).
 	Close() error
 }
 
-// Logger defines the logging interface used by the ingestion package.
-type Logger interface {
-	Info(msg string, args ...any)
-	Error(msg string, args ...any)
-	Warn(msg string, args ...any)
-	Debug(msg string, args ...any)
-}
-
-// NopLogger discards all log output. Useful for tests.
-type NopLogger struct{}
-
-func (NopLogger) Info(string, ...any)  {}
-func (NopLogger) Error(string, ...any) {}
-func (NopLogger) Warn(string, ...any)  {}
-func (NopLogger) Debug(string, ...any) {}
+// Logger is the observability contract used by the ingestion module.
+type Logger = observability.Logger

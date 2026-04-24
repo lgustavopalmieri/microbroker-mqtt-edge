@@ -1,0 +1,56 @@
+# ============================================================
+# Dockerfile.production — Minimal scratch image for production
+# Context: Industry 4.0 edge MQTT broker (microbroker)
+# ============================================================
+
+# ── Stage 1: Build static binary ─────────────────────────────
+FROM golang:1.25-alpine AS builder
+
+RUN apk add --no-cache ca-certificates tzdata
+
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
+
+COPY cmd/ cmd/
+COPY internal/ internal/
+
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -trimpath \
+    -ldflags="-s -w -extldflags '-static'" \
+    -o /bin/microbroker \
+    ./cmd/broker
+
+# ── Stage 2: Production image from scratch ───────────────────
+FROM scratch
+
+# Security labels
+LABEL maintainer="devops" \
+      org.opencontainers.image.title="microbroker-mqtt-edge" \
+      org.opencontainers.image.description="Lightweight MQTT broker for Industry 4.0 edge" \
+      org.opencontainers.image.source="https://github.com/lgustavopalmieri/microbroker-mqtt-edge"
+
+# TLS certificate authorities (HTTPS, mTLS)
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Timezone database (required by BROKER_TIMEZONE)
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+
+# Non-root user: copy passwd/group from builder
+COPY --from=builder /etc/passwd /etc/passwd
+COPY --from=builder /etc/group  /etc/group
+
+# Application binary
+COPY --from=builder /bin/microbroker /microbroker
+
+# Data directory for SQLite (mount a volume here)
+VOLUME ["/data"]
+
+# Expose MQTT (TCP) and HTTP (audit API)
+EXPOSE 1883 8080
+
+# Run as non-root (nobody:nogroup — UID 65534)
+USER 65534:65534
+
+ENTRYPOINT ["/microbroker"]

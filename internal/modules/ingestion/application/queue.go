@@ -3,26 +3,26 @@ package application
 import (
 	"context"
 
-	"microbroker-mqtt-edge/internal/modules/ingestion/domain"
+	"microbroker-mqtt-edge/internal/common/message"
 )
 
 // Queue is a FIFO queue for a single topic, backed by a Go channel.
 // Each queue has exactly one consumer goroutine that processes messages sequentially.
 type Queue struct {
 	topic    string
-	messages chan domain.Message
+	messages chan message.Message
 }
 
 // NewQueue creates a new FIFO queue for the given topic with the specified buffer size.
 func NewQueue(topic string, bufferSize int) *Queue {
 	return &Queue{
 		topic:    topic,
-		messages: make(chan domain.Message, bufferSize),
+		messages: make(chan message.Message, bufferSize),
 	}
 }
 
 // Enqueue adds a message to the queue. Blocks if the buffer is full (backpressure).
-func (q *Queue) Enqueue(msg domain.Message) {
+func (q *Queue) Enqueue(msg message.Message) {
 	q.messages <- msg
 }
 
@@ -35,7 +35,7 @@ func (q *Queue) Topic() string {
 // For each message: persist via Store, then forward to dispatchChan.
 // If Store fails, the message is logged and skipped (not forwarded).
 // Blocks until context is cancelled or the queue channel is closed.
-func (q *Queue) StartConsumer(ctx context.Context, store Store, dispatchChan chan<- domain.Message, logger Logger) {
+func (q *Queue) StartConsumer(ctx context.Context, store Store, dispatchChan chan<- message.Message, logger Logger) {
 	for {
 		select {
 		case <-ctx.Done():

@@ -3,7 +3,7 @@ package application
 import (
 	"context"
 
-	"microbroker-mqtt-edge/internal/modules/ingestion/domain"
+	"microbroker-mqtt-edge/internal/common/message"
 )
 
 // Pipeline orchestrates the FIFO queues and routes messages from the input channel
@@ -11,13 +11,13 @@ import (
 type Pipeline struct {
 	queues       map[string]*Queue
 	store        Store
-	dispatchChan chan<- domain.Message
+	dispatchChan chan<- message.Message
 	bufSize      int
 	logger       Logger
 }
 
 // NewPipeline creates a Pipeline with one FIFO queue per topic.
-func NewPipeline(topics []string, store Store, dispatchChan chan<- domain.Message, bufSize int, logger Logger) *Pipeline {
+func NewPipeline(topics []string, store Store, dispatchChan chan<- message.Message, bufSize int, logger Logger) *Pipeline {
 	queues := make(map[string]*Queue, len(topics))
 	for _, topic := range topics {
 		queues[topic] = NewQueue(topic, bufSize)
@@ -34,7 +34,7 @@ func NewPipeline(topics []string, store Store, dispatchChan chan<- domain.Messag
 
 // Start launches all queue consumers and begins routing messages from inputChan
 // to the appropriate topic queue. Blocks until context is cancelled or inputChan is closed.
-func (p *Pipeline) Start(ctx context.Context, inputChan <-chan domain.Message) {
+func (p *Pipeline) Start(ctx context.Context, inputChan <-chan message.Message) {
 	// Start one consumer goroutine per topic queue
 	for _, q := range p.queues {
 		go q.StartConsumer(ctx, p.store, p.dispatchChan, p.logger)
