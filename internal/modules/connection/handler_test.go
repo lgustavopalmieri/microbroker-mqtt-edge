@@ -14,8 +14,8 @@ import (
 	"microbroker-mqtt-edge/internal/common/message"
 	"microbroker-mqtt-edge/internal/common/observability"
 	"microbroker-mqtt-edge/internal/modules/auth"
-	"microbroker-mqtt-edge/internal/modules/connection/domain"
 	"microbroker-mqtt-edge/internal/modules/protocol"
+	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
 )
 
 // --- Test helpers ---
@@ -81,7 +81,7 @@ func buildSubscribePacket(packetID uint16, topics []string, qos []byte) []byte {
 
 func setupTestServer(t *testing.T) (*Server, chan message.Message, context.CancelFunc) {
 	t.Helper()
-	topics, err := domain.NewTopicRegistry([]string{"machine/status", "machine/alarm"})
+	topics, err := topicdomain.NewTopicRegistry([]string{"machine/status", "machine/alarm"})
 	require.NoError(t, err)
 
 	msgChan := make(chan message.Message, 100)

@@ -8,12 +8,12 @@ import (
 	"microbroker-mqtt-edge/internal/common/observability"
 	"microbroker-mqtt-edge/internal/modules/auth"
 	"microbroker-mqtt-edge/internal/modules/connection"
-	connectiondomain "microbroker-mqtt-edge/internal/modules/connection/domain"
 	"microbroker-mqtt-edge/internal/modules/ingestion/adapters/outbound/database"
 	"microbroker-mqtt-edge/internal/modules/ingestion/application"
 	"microbroker-mqtt-edge/internal/modules/processing"
 	processingdomain "microbroker-mqtt-edge/internal/modules/processing/domain"
 	"microbroker-mqtt-edge/internal/modules/processing/workers"
+	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
 )
 
 // Modules holds all initialized business modules.
@@ -52,7 +52,7 @@ func InitModules(cfg *config.Config, db *sql.DB, logger observability.Logger) (*
 	authenticator := auth.NewEnvAuthenticator(cfg.Username, cfg.Password)
 
 	// Connection
-	topics, err := connectiondomain.NewTopicRegistry(cfg.Topics)
+	topics, err := topicdomain.NewTopicRegistry(cfg.Topics)
 	if err != nil {
 		return nil, err
 	}
