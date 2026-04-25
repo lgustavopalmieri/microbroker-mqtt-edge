@@ -1,47 +1,9 @@
-package connection
+package server
 
 import (
 	"context"
 	"net"
-
-	"microbroker-mqtt-edge/internal/common/message"
-	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
 )
-
-// Server is the TCP listener that accepts MQTT client connections.
-type Server struct {
-	address  string
-	listener net.Listener
-	connMgr  *ClientManager
-	auth     Authenticator
-	topics   *topicdomain.TopicRegistry
-	msgChan  chan<- message.Message
-	timezone string
-	logger   Logger
-	ready    chan struct{} // closed when listener is ready
-}
-
-// NewServer creates a new MQTT TCP server with all dependencies injected.
-func NewServer(
-	address string,
-	connMgr *ClientManager,
-	auth Authenticator,
-	topics *topicdomain.TopicRegistry,
-	msgChan chan<- message.Message,
-	timezone string,
-	logger Logger,
-) *Server {
-	return &Server{
-		address:  address,
-		connMgr:  connMgr,
-		auth:     auth,
-		topics:   topics,
-		msgChan:  msgChan,
-		timezone: timezone,
-		logger:   logger,
-		ready:    make(chan struct{}),
-	}
-}
 
 // ListenAndServe starts the TCP listener and accept loop.
 // Blocks until the context is cancelled.

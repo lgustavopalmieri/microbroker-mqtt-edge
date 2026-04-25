@@ -1,25 +1,8 @@
-package connection
+package clientmanager
 
 import (
-	"sync"
-
-	"microbroker-mqtt-edge/internal/modules/connection/domain"
+	"microbroker-mqtt-edge/internal/modules/connection/client"
 )
-
-// ClientManager tracks active client connections with a configurable limit.
-type ClientManager struct {
-	mu         sync.Mutex
-	clients    map[string]*domain.Client
-	maxClients int
-}
-
-// NewClientManager creates a ClientManager with the given max client limit.
-func NewClientManager(maxClients int) *ClientManager {
-	return &ClientManager{
-		clients:    make(map[string]*domain.Client),
-		maxClients: maxClients,
-	}
-}
 
 // CanAccept returns true if the manager can accept another client.
 func (cm *ClientManager) CanAccept() bool {
@@ -30,23 +13,23 @@ func (cm *ClientManager) CanAccept() bool {
 
 // Add registers a client. Returns ErrMaxClientsReached if the limit is hit.
 // If a client with the same ID already exists, the old one is closed and replaced.
-func (cm *ClientManager) Add(client *domain.Client) error {
+func (cm *ClientManager) Add(c *client.Client) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
 	if len(cm.clients) >= cm.maxClients {
 		// Check if we're replacing an existing client (same ID)
-		if _, exists := cm.clients[client.ID]; !exists {
-			return domain.ErrMaxClientsReached
+		if _, exists := cm.clients[c.ID]; !exists {
+			return client.ErrMaxClientsReached
 		}
 	}
 
 	// Close existing client with same ID if present
-	if existing, exists := cm.clients[client.ID]; exists {
+	if existing, exists := cm.clients[c.ID]; exists {
 		existing.Close()
 	}
 
-	cm.clients[client.ID] = client
+	cm.clients[c.ID] = c
 	return nil
 }
 
@@ -58,7 +41,7 @@ func (cm *ClientManager) Remove(clientID string) {
 }
 
 // Get returns a client by ID, or false if not found.
-func (cm *ClientManager) Get(clientID string) (*domain.Client, bool) {
+func (cm *ClientManager) Get(clientID string) (*client.Client, bool) {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 	c, ok := cm.clients[clientID]

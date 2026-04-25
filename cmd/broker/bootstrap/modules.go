@@ -7,7 +7,8 @@ import (
 	"microbroker-mqtt-edge/internal/common/message"
 	"microbroker-mqtt-edge/internal/common/observability"
 	"microbroker-mqtt-edge/internal/modules/auth"
-	"microbroker-mqtt-edge/internal/modules/connection"
+	clientmanager "microbroker-mqtt-edge/internal/modules/connection/client_manager"
+	"microbroker-mqtt-edge/internal/modules/connection/server"
 	"microbroker-mqtt-edge/internal/modules/ingestion/adapters/outbound/database"
 	"microbroker-mqtt-edge/internal/modules/ingestion/application"
 	"microbroker-mqtt-edge/internal/modules/processing"
@@ -20,8 +21,8 @@ import (
 type Modules struct {
 	Pipeline  *application.Pipeline
 	FanOut    *processing.FanOut
-	Server    *connection.Server
-	ClientMgr *connection.ClientManager
+	Server    *server.Server
+	ClientMgr *clientmanager.ClientManager
 
 	// channels owned by bootstrap, passed to modules
 	MsgChan     chan message.Message
@@ -57,14 +58,14 @@ func InitModules(cfg *config.Config, db *sql.DB, logger observability.Logger) (*
 		return nil, err
 	}
 
-	clientMgr := connection.NewClientManager(cfg.MaxClients)
-	server := connection.NewServer(cfg.Address(), clientMgr, authenticator, topics, msgChan, cfg.Timezone, logger)
+	connMgr := clientmanager.NewClientManager(cfg.MaxClients)
+	srv := server.NewServer(cfg.Address(), connMgr, authenticator, topics, msgChan, cfg.Timezone, logger)
 
 	return &Modules{
 		Pipeline:    pipeline,
 		FanOut:      fanout,
-		Server:      server,
-		ClientMgr:   clientMgr,
+		Server:      srv,
+		ClientMgr:   connMgr,
 		MsgChan:     msgChan,
 		ProcessChan: processChan,
 	}, nil

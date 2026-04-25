@@ -10,8 +10,10 @@ import (
 
 	"microbroker-mqtt-edge/internal/common/message"
 	"microbroker-mqtt-edge/internal/common/observability"
+	"microbroker-mqtt-edge/internal/common/testutil"
 	"microbroker-mqtt-edge/internal/modules/auth"
-	"microbroker-mqtt-edge/internal/modules/connection"
+	clientmanager "microbroker-mqtt-edge/internal/modules/connection/client_manager"
+	"microbroker-mqtt-edge/internal/modules/connection/server"
 	"microbroker-mqtt-edge/internal/modules/ingestion/adapters/outbound/database"
 	"microbroker-mqtt-edge/internal/modules/ingestion/application"
 	"microbroker-mqtt-edge/internal/modules/processing"
@@ -52,7 +54,7 @@ func (w *collectWorker) messages() []message.Message {
 
 // broker bundles all components for a running test broker.
 type broker struct {
-	server *connection.Server
+	server *server.Server
 	store  *database.SQLiteRepository
 	worker *collectWorker
 	fanout *processing.FanOut
@@ -100,8 +102,8 @@ func setupBroker(t *testing.T, topics []string) *broker {
 	topicReg, err := topicdomain.NewTopicRegistry(topics)
 	require.NoError(t, err)
 
-	clientMgr := connection.NewClientManager(5)
-	srv := connection.NewServer("127.0.0.1:0", clientMgr, authenticator, topicReg, msgChan, "UTC", logger)
+	clientMgr := clientmanager.NewClientManager(5)
+	srv := server.NewServer("127.0.0.1:0", clientMgr, authenticator, topicReg, msgChan, "UTC", logger)
 
 	go func() {
 		srv.ListenAndServe(ctx)
@@ -137,9 +139,9 @@ func connectClient(t *testing.T, addr, clientID, user, pass string) net.Conn {
 	conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
 	require.NoError(t, err)
 
-	conn.Write(buildConnectPacket(clientID, user, pass, 60))
+	conn.Write(testutil.BuildConnectPacket(clientID, user, pass, 60))
 
-	_, rc := readConnack(t, conn)
+	_, rc := testutil.ReadConnack(t, conn)
 	require.Equal(t, protocol.ConnAccepted, rc, "expected CONNACK accepted")
 	return conn
 }
@@ -150,78 +152,18 @@ func connectClientRaw(t *testing.T, addr, clientID, user, pass string) (net.Conn
 	conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
 	require.NoError(t, err)
 
-	conn.Write(buildConnectPacket(clientID, user, pass, 60))
-	_, rc := readConnack(t, conn)
+	conn.Write(testutil.BuildConnectPacket(clientID, user, pass, 60))
+	_, rc := testutil.ReadConnack(t, conn)
 	return conn, rc
 }
 
 // publishMessage sends a PUBLISH packet. If QoS 1, reads and validates PUBACK.
 func publishMessage(t *testing.T, conn net.Conn, topic string, payload []byte, qos byte, packetID uint16) {
 	t.Helper()
-	conn.Write(buildPublishPacket(topic, payload, qos, packetID))
+	conn.Write(testutil.BuildPublishPacket(topic, payload, qos, packetID))
 	if qos == 1 {
-		readPuback(t, conn, packetID)
+		testutil.ReadPuback(t, conn, packetID)
 	}
-}
-
-// --- packet builders ---
-
-func buildConnectPacket(clientID, username, password string, keepAlive uint16) []byte {
-	var payload []byte
-	payload = append(payload, 0x00, 0x04, 'M', 'Q', 'T', 'T') // Protocol Name
-	payload = append(payload, 0x04)                           // Protocol Level
-	payload = append(payload, 0xC2)                           // Flags: Username+Password+CleanSession
-	payload = append(payload, byte(keepAlive>>8), byte(keepAlive&0xFF))
-	payload = append(payload, protocol.WriteUTF8String(clientID)...)
-	payload = append(payload, protocol.WriteUTF8String(username)...)
-	passBytes := []byte(password)
-	payload = append(payload, byte(len(passBytes)>>8), byte(len(passBytes)&0xFF))
-	payload = append(payload, passBytes...)
-
-	var pkt []byte
-	pkt = append(pkt, 0x10) // CONNECT
-	pkt = append(pkt, protocol.EncodeRemainingLength(len(payload))...)
-	pkt = append(pkt, payload...)
-	return pkt
-}
-
-func buildPublishPacket(topic string, payload []byte, qos byte, packetID uint16) []byte {
-	var data []byte
-	data = append(data, protocol.WriteUTF8String(topic)...)
-	if qos > 0 {
-		data = append(data, byte(packetID>>8), byte(packetID&0xFF))
-	}
-	data = append(data, payload...)
-
-	flags := qos << 1
-	var pkt []byte
-	pkt = append(pkt, 0x30|flags)
-	pkt = append(pkt, protocol.EncodeRemainingLength(len(data))...)
-	pkt = append(pkt, data...)
-	return pkt
-}
-
-func readConnack(t *testing.T, conn net.Conn) (bool, protocol.ConnackReturnCode) {
-	t.Helper()
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-	buf := make([]byte, 4)
-	_, err := io.ReadFull(conn, buf)
-	require.NoError(t, err)
-	require.Equal(t, byte(0x20), buf[0])
-	require.Equal(t, byte(0x02), buf[1])
-	sessionPresent := buf[2]&0x01 != 0
-	return sessionPresent, protocol.ConnackReturnCode(buf[3])
-}
-
-func readPuback(t *testing.T, conn net.Conn, expectedID uint16) {
-	t.Helper()
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-	buf := make([]byte, 4)
-	_, err := io.ReadFull(conn, buf)
-	require.NoError(t, err)
-	require.Equal(t, byte(0x40), buf[0])
-	gotID := uint16(buf[2])<<8 | uint16(buf[3])
-	require.Equal(t, expectedID, gotID)
 }
 
 // waitForWorkerMessages polls the worker until it has at least n messages or timeout.
@@ -323,7 +265,7 @@ func TestE2E_SixthClientRejected(t *testing.T) {
 	require.NoError(t, err)
 	defer conn6.Close()
 
-	conn6.Write(buildConnectPacket("c5", "admin", "secret", 60))
+	conn6.Write(testutil.BuildConnectPacket("c5", "admin", "secret", 60))
 
 	conn6.SetReadDeadline(time.Now().Add(2 * time.Second))
 	buf := make([]byte, 4)

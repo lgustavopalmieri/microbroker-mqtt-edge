@@ -1,4 +1,4 @@
-package connection
+package clientmanager
 
 import (
 	"net"
@@ -8,15 +8,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"microbroker-mqtt-edge/internal/modules/connection/domain"
+	"microbroker-mqtt-edge/internal/modules/connection/client"
 )
 
-func newTestClient(id string) (*domain.Client, func()) {
-	server, client := net.Pipe()
-	c := domain.NewClient(id, server, 60)
+func newTestClient(id string) (*client.Client, func()) {
+	server, conn := net.Pipe()
+	c := client.NewClient(id, server, 60)
 	cleanup := func() {
 		server.Close()
-		client.Close()
+		conn.Close()
 	}
 	return c, cleanup
 }
@@ -61,7 +61,7 @@ func TestClientManager_AddBeyondLimit(t *testing.T) {
 	require.NoError(t, err)
 
 	err = cm.Add(c2)
-	assert.ErrorIs(t, err, domain.ErrMaxClientsReached)
+	assert.ErrorIs(t, err, client.ErrMaxClientsReached)
 }
 
 func TestClientManager_Remove(t *testing.T) {
