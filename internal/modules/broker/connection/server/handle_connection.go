@@ -5,8 +5,8 @@ import (
 	"net"
 	"time"
 
-	"microbroker-mqtt-edge/internal/modules/connection/client"
-	"microbroker-mqtt-edge/internal/modules/protocol"
+	"microbroker-mqtt-edge/internal/modules/broker/connection/client"
+	"microbroker-mqtt-edge/internal/modules/broker/protocol"
 )
 
 // handleConnection processes the full lifecycle of a single MQTT client connection.

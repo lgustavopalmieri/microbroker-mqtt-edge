@@ -12,9 +12,9 @@ import (
 	"microbroker-mqtt-edge/internal/common/observability"
 	"microbroker-mqtt-edge/internal/common/testutil"
 	"microbroker-mqtt-edge/internal/modules/auth"
-	clientmanager "microbroker-mqtt-edge/internal/modules/connection/client_manager"
-	"microbroker-mqtt-edge/internal/modules/connection/server"
-	"microbroker-mqtt-edge/internal/modules/protocol"
+	clientmanager "microbroker-mqtt-edge/internal/modules/broker/connection/client_manager"
+	"microbroker-mqtt-edge/internal/modules/broker/connection/server"
+	"microbroker-mqtt-edge/internal/modules/broker/protocol"
 	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
 )
 

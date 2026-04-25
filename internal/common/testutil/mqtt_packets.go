@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"microbroker-mqtt-edge/internal/modules/protocol"
+	"microbroker-mqtt-edge/internal/modules/broker/protocol"
 )
 
 // BuildConnectPacket builds a full MQTT CONNECT packet with username+password+clean session.

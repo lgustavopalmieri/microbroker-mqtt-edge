@@ -3,7 +3,7 @@ package clientmanager
 import (
 	"sync"
 
-	"microbroker-mqtt-edge/internal/modules/connection/client"
+	"microbroker-mqtt-edge/internal/modules/broker/connection/client"
 )
 
 // ClientManager tracks active client connections with a configurable limit.

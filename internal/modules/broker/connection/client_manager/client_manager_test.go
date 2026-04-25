@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"microbroker-mqtt-edge/internal/modules/connection/client"
+	"microbroker-mqtt-edge/internal/modules/broker/connection/client"
 )
 
 func newTestClient(id string) (*client.Client, func()) {

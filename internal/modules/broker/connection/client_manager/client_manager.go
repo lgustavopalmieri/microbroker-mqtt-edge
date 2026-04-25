@@ -1,7 +1,7 @@
 package clientmanager
 
 import (
-	"microbroker-mqtt-edge/internal/modules/connection/client"
+	"microbroker-mqtt-edge/internal/modules/broker/connection/client"
 )
 
 // CanAccept returns true if the manager can accept another client.

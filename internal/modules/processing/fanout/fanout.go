@@ -1,4 +1,4 @@
-package processing
+package fanout
 
 import (
 	"context"
@@ -6,28 +6,7 @@ import (
 	"sync"
 
 	"microbroker-mqtt-edge/internal/common/message"
-	"microbroker-mqtt-edge/internal/common/observability"
-	"microbroker-mqtt-edge/internal/modules/processing/domain"
 )
-
-// FanOut reads messages from an input channel and fans them out
-// to all registered workers concurrently. It waits for every worker
-// to finish before processing the next message.
-type FanOut struct {
-	workers []domain.Worker
-	input   <-chan message.Message
-	logger  observability.Logger
-}
-
-// NewFanOut creates a FanOut that reads from input and
-// distributes each message to every worker.
-func NewFanOut(input <-chan message.Message, workers []domain.Worker, logger observability.Logger) *FanOut {
-	return &FanOut{
-		workers: workers,
-		input:   input,
-		logger:  logger,
-	}
-}
 
 // Start blocks, reading messages from the input channel and fanning
 // out to workers until the channel is closed or the context is cancelled.
@@ -52,7 +31,7 @@ func (f *FanOut) fanOut(ctx context.Context, msg message.Message) {
 	var wg sync.WaitGroup
 	for _, w := range f.workers {
 		wg.Add(1)
-		go func(worker domain.Worker) {
+		go func(worker Worker) {
 			defer wg.Done()
 			defer func() {
 				if r := recover(); r != nil {

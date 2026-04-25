@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"microbroker-mqtt-edge/internal/common/testutil"
-	"microbroker-mqtt-edge/internal/modules/protocol"
+	"microbroker-mqtt-edge/internal/modules/broker/protocol"
 )
 
 func TestHandleConnection_ConnectValid(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"microbroker-mqtt-edge/internal/common/message"
-	clientmanager "microbroker-mqtt-edge/internal/modules/connection/client_manager"
+	clientmanager "microbroker-mqtt-edge/internal/modules/broker/connection/client_manager"
 	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
 )
 

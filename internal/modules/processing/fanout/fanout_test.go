@@ -1,4 +1,4 @@
-package processing_test
+package fanout_test
 
 import (
 	"context"
@@ -9,8 +9,7 @@ import (
 	"time"
 
 	"microbroker-mqtt-edge/internal/common/message"
-	"microbroker-mqtt-edge/internal/modules/processing"
-	"microbroker-mqtt-edge/internal/modules/processing/domain"
+	"microbroker-mqtt-edge/internal/modules/processing/fanout"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,7 +41,6 @@ func (l *spyLogger) messages() []string {
 	return cp
 }
 
-// mockWorker is a configurable test double for domain.Worker.
 type mockWorker struct {
 	name      string
 	processFn func(ctx context.Context, msg message.Message) error
@@ -100,7 +98,7 @@ func TestFanOut_AllWorkersReceiveMessage(t *testing.T) {
 	w2 := newMockWorker("w2")
 	w3 := newMockWorker("w3")
 
-	f := processing.NewFanOut(ch, []domain.Worker{w1, w2, w3}, &spyLogger{})
+	f := fanout.NewFanOut(ch, []fanout.Worker{w1, w2, w3}, &spyLogger{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
@@ -127,7 +125,7 @@ func TestFanOut_WorkerError_OthersContinue(t *testing.T) {
 	healthy := newMockWorker("healthy")
 	logger := &spyLogger{}
 
-	f := processing.NewFanOut(ch, []domain.Worker{failing, healthy}, logger)
+	f := fanout.NewFanOut(ch, []fanout.Worker{failing, healthy}, logger)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
@@ -144,7 +142,7 @@ func TestFanOut_WorkerError_OthersContinue(t *testing.T) {
 
 func TestFanOut_ContextCancelled_Stops(t *testing.T) {
 	ch := make(chan message.Message, 10)
-	f := processing.NewFanOut(ch, nil, &spyLogger{})
+	f := fanout.NewFanOut(ch, nil, &spyLogger{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
@@ -162,7 +160,7 @@ func TestFanOut_ContextCancelled_Stops(t *testing.T) {
 func TestFanOut_NoWorkers_ConsumesWithoutError(t *testing.T) {
 	ch := make(chan message.Message, 3)
 	logger := &spyLogger{}
-	f := processing.NewFanOut(ch, nil, logger)
+	f := fanout.NewFanOut(ch, nil, logger)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
@@ -181,7 +179,7 @@ func TestFanOut_NoWorkers_ConsumesWithoutError(t *testing.T) {
 
 func TestFanOut_ChannelClosed_Stops(t *testing.T) {
 	ch := make(chan message.Message, 1)
-	f := processing.NewFanOut(ch, nil, &spyLogger{})
+	f := fanout.NewFanOut(ch, nil, &spyLogger{})
 
 	done := make(chan struct{})
 	go func() { f.Start(context.Background()); close(done) }()
@@ -208,7 +206,7 @@ func TestFanOut_MessagesProcessedInOrder(t *testing.T) {
 		return nil
 	}
 
-	f := processing.NewFanOut(ch, []domain.Worker{w}, &spyLogger{})
+	f := fanout.NewFanOut(ch, []fanout.Worker{w}, &spyLogger{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
@@ -236,7 +234,7 @@ func TestFanOut_WorkerPanic_Recovered(t *testing.T) {
 	healthy := newMockWorker("healthy")
 	logger := &spyLogger{}
 
-	f := processing.NewFanOut(ch, []domain.Worker{panicker, healthy}, logger)
+	f := fanout.NewFanOut(ch, []fanout.Worker{panicker, healthy}, logger)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
@@ -261,7 +259,7 @@ func TestFanOut_Close_CallsAllWorkers(t *testing.T) {
 		return w
 	}
 
-	f := processing.NewFanOut(ch, []domain.Worker{
+	f := fanout.NewFanOut(ch, []fanout.Worker{
 		makeWorker("a"), makeWorker("b"), makeWorker("c"),
 	}, &spyLogger{})
 

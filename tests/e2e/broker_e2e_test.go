@@ -12,12 +12,11 @@ import (
 	"microbroker-mqtt-edge/internal/common/observability"
 	"microbroker-mqtt-edge/internal/common/testutil"
 	"microbroker-mqtt-edge/internal/modules/auth"
-	clientmanager "microbroker-mqtt-edge/internal/modules/connection/client_manager"
-	"microbroker-mqtt-edge/internal/modules/connection/server"
-	"microbroker-mqtt-edge/internal/modules/ingestion/pipeline"
-	"microbroker-mqtt-edge/internal/modules/processing"
-	processingdomain "microbroker-mqtt-edge/internal/modules/processing/domain"
-	"microbroker-mqtt-edge/internal/modules/protocol"
+	clientmanager "microbroker-mqtt-edge/internal/modules/broker/connection/client_manager"
+	"microbroker-mqtt-edge/internal/modules/broker/connection/server"
+	"microbroker-mqtt-edge/internal/modules/broker/ingestion/pipeline"
+	"microbroker-mqtt-edge/internal/modules/broker/protocol"
+	"microbroker-mqtt-edge/internal/modules/processing/fanout"
 	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
 	platformdb "microbroker-mqtt-edge/internal/platform/database"
 	ingestiondb "microbroker-mqtt-edge/internal/platform/database/ingestion"
@@ -57,7 +56,7 @@ type broker struct {
 	server *server.Server
 	store  *ingestiondb.SQLiteRepository
 	worker *collectWorker
-	fanout *processing.FanOut
+	fo     *fanout.FanOut
 	cancel context.CancelFunc
 	addr   string
 	topics []string
@@ -92,8 +91,8 @@ func setupBroker(t *testing.T, topics []string) *broker {
 	go p.Start(ctx, msgChan)
 
 	// FanOut (processing)
-	fanout := processing.NewFanOut(processChan, []processingdomain.Worker{w}, logger)
-	go fanout.Start(ctx)
+	fo := fanout.NewFanOut(processChan, []fanout.Worker{w}, logger)
+	go fo.Start(ctx)
 
 	// Auth
 	authenticator := auth.NewEnvAuthenticator("admin", "secret")
@@ -119,14 +118,14 @@ func setupBroker(t *testing.T, topics []string) *broker {
 	t.Cleanup(func() {
 		cancel()
 		srv.Close()
-		fanout.Close()
+		fo.Close()
 	})
 
 	return &broker{
 		server: srv,
 		store:  store,
 		worker: w,
-		fanout: fanout,
+		fo:     fo,
 		cancel: cancel,
 		addr:   srv.Addr().String(),
 		topics: topics,

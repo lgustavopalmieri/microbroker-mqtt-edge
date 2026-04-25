@@ -8,8 +8,8 @@ import (
 
 	"microbroker-mqtt-edge/internal/common/message"
 	"microbroker-mqtt-edge/internal/common/observability"
-	clientmanager "microbroker-mqtt-edge/internal/modules/connection/client_manager"
-	"microbroker-mqtt-edge/internal/modules/connection/server"
+	clientmanager "microbroker-mqtt-edge/internal/modules/broker/connection/client_manager"
+	"microbroker-mqtt-edge/internal/modules/broker/connection/server"
 	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
 )
 

@@ -4,8 +4,8 @@ import (
 	"context"
 	"net"
 
-	"microbroker-mqtt-edge/internal/modules/connection/client"
-	"microbroker-mqtt-edge/internal/modules/protocol"
+	"microbroker-mqtt-edge/internal/modules/broker/connection/client"
+	"microbroker-mqtt-edge/internal/modules/broker/protocol"
 )
 
 // readLoop processes packets from a connected client until disconnect or error.

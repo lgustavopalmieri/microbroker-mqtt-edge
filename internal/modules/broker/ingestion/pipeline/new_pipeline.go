@@ -2,7 +2,7 @@ package pipeline
 
 import (
 	"microbroker-mqtt-edge/internal/common/message"
-	"microbroker-mqtt-edge/internal/modules/ingestion/queue"
+	"microbroker-mqtt-edge/internal/modules/broker/ingestion/queue"
 )
 
 // Pipeline orchestrates the FIFO queues and routes messages from the input channel

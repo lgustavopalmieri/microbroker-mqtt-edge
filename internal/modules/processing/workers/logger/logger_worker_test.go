@@ -1,4 +1,4 @@
-package workers_test
+package logger_test
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"microbroker-mqtt-edge/internal/common/message"
-	"microbroker-mqtt-edge/internal/modules/processing/workers"
+	"microbroker-mqtt-edge/internal/modules/processing/workers/logger"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,13 +42,13 @@ func (l *spyLogger) getEntries() []logEntry {
 // --- tests ------------------------------------------------------------------
 
 func TestLoggerWorker_Name(t *testing.T) {
-	w := workers.NewLoggerWorker(&spyLogger{})
+	w := logger.NewLoggerWorker(&spyLogger{})
 	assert.Equal(t, "logger", w.Name())
 }
 
 func TestLoggerWorker_Process_LogsCorrectFields(t *testing.T) {
-	logger := &spyLogger{}
-	w := workers.NewLoggerWorker(logger)
+	spy := &spyLogger{}
+	w := logger.NewLoggerWorker(spy)
 
 	msg := message.Message{
 		ClientID:  "device-01",
@@ -61,13 +61,12 @@ func TestLoggerWorker_Process_LogsCorrectFields(t *testing.T) {
 	err := w.Process(context.Background(), msg)
 	require.NoError(t, err)
 
-	entries := logger.getEntries()
+	entries := spy.getEntries()
 	require.Len(t, entries, 1)
 
 	e := entries[0]
 	assert.Equal(t, "message received", e.msg)
 
-	// Verify key-value pairs in args.
 	argsMap := make(map[string]any)
 	for i := 0; i+1 < len(e.args); i += 2 {
 		key, ok := e.args[i].(string)
@@ -83,6 +82,6 @@ func TestLoggerWorker_Process_LogsCorrectFields(t *testing.T) {
 }
 
 func TestLoggerWorker_Close_ReturnsNil(t *testing.T) {
-	w := workers.NewLoggerWorker(&spyLogger{})
+	w := logger.NewLoggerWorker(&spyLogger{})
 	assert.NoError(t, w.Close())
 }

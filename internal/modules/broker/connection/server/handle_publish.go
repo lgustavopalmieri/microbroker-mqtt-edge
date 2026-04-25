@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"microbroker-mqtt-edge/internal/common/message"
-	"microbroker-mqtt-edge/internal/modules/connection/client"
-	"microbroker-mqtt-edge/internal/modules/protocol"
+	"microbroker-mqtt-edge/internal/modules/broker/connection/client"
+	"microbroker-mqtt-edge/internal/modules/broker/protocol"
 )
 
 func (s *Server) handlePublish(ctx context.Context, cl *client.Client, header protocol.FixedHeader, data []byte) {
