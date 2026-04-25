@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"microbroker-mqtt-edge/internal/common/message"
+	"microbroker-mqtt-edge/internal/common/observability"
 	"microbroker-mqtt-edge/internal/modules/processing/domain"
 )
 
@@ -15,12 +16,12 @@ import (
 type FanOut struct {
 	workers []domain.Worker
 	input   <-chan message.Message
-	logger  Logger
+	logger  observability.Logger
 }
 
 // NewFanOut creates a FanOut that reads from input and
 // distributes each message to every worker.
-func NewFanOut(input <-chan message.Message, workers []domain.Worker, logger Logger) *FanOut {
+func NewFanOut(input <-chan message.Message, workers []domain.Worker, logger observability.Logger) *FanOut {
 	return &FanOut{
 		workers: workers,
 		input:   input,
