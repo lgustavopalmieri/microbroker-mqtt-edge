@@ -1,4 +1,4 @@
-package application
+package pipeline
 
 import (
 	"context"
@@ -16,7 +16,7 @@ type Store interface {
 
 	// GetByTopic retrieves all messages for a given topic, ordered by insertion.
 	// Primarily used for testing and debugging.
-	GetByTopic(ctx context.Context, topic string) ([]message.Message, error)
+	// GetByTopic(ctx context.Context, topic string) ([]message.Message, error)
 
 	// Close releases adapter-specific resources (may be no-op if connection is shared).
 	Close() error

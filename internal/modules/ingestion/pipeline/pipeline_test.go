@@ -1,7 +1,8 @@
-package application
+package pipeline
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,26 +13,50 @@ import (
 	"microbroker-mqtt-edge/internal/common/observability"
 )
 
+// --- Mock Store for Pipeline Tests ---
+
+type mockStore struct {
+	mu    sync.Mutex
+	saved []message.Message
+}
+
+func (m *mockStore) SaveRawData(_ context.Context, msg message.Message) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.saved = append(m.saved, msg)
+	return nil
+}
+
+func (m *mockStore) Close() error { return nil }
+
+func (m *mockStore) getSaved() []message.Message {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	cp := make([]message.Message, len(m.saved))
+	copy(cp, m.saved)
+	return cp
+}
+
+// --- Tests ---
+
 func TestPipeline_RoutesToCorrectQueue(t *testing.T) {
 	store := &mockStore{}
 	dispatchChan := make(chan message.Message, 20)
 	topics := []string{"topic/a", "topic/b"}
 
-	pipeline := NewPipeline(topics, store, dispatchChan, 10, observability.NopLogger{})
-	assert.Equal(t, 2, pipeline.QueueCount())
+	p := NewPipeline(topics, store, dispatchChan, 10, observability.NopLogger{})
+	assert.Equal(t, 2, p.QueueCount())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	inputChan := make(chan message.Message, 10)
-	go pipeline.Start(ctx, inputChan)
+	go p.Start(ctx, inputChan)
 
-	// Send messages to different topics
 	inputChan <- message.Message{ClientID: "c1", Topic: "topic/a", Payload: []byte("a1"), Timestamp: time.Now()}
 	inputChan <- message.Message{ClientID: "c1", Topic: "topic/b", Payload: []byte("b1"), Timestamp: time.Now()}
 	inputChan <- message.Message{ClientID: "c1", Topic: "topic/a", Payload: []byte("a2"), Timestamp: time.Now()}
 
-	// Collect dispatched messages
 	var dispatched []message.Message
 	for i := 0; i < 3; i++ {
 		select {
@@ -43,8 +68,6 @@ func TestPipeline_RoutesToCorrectQueue(t *testing.T) {
 	}
 
 	require.Len(t, dispatched, 3)
-
-	// All 3 should have been saved
 	saved := store.getSaved()
 	assert.Len(t, saved, 3)
 }
@@ -54,26 +77,22 @@ func TestPipeline_UnknownTopicDiscarded(t *testing.T) {
 	dispatchChan := make(chan message.Message, 10)
 	topics := []string{"topic/a"}
 
-	pipeline := NewPipeline(topics, store, dispatchChan, 10, observability.NopLogger{})
+	p := NewPipeline(topics, store, dispatchChan, 10, observability.NopLogger{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	inputChan := make(chan message.Message, 10)
-	go pipeline.Start(ctx, inputChan)
+	go p.Start(ctx, inputChan)
 
-	// Send to unknown topic
 	inputChan <- message.Message{ClientID: "c1", Topic: "unknown/topic", Payload: []byte("data"), Timestamp: time.Now()}
 
-	// Should NOT appear in dispatch
 	select {
 	case <-dispatchChan:
 		t.Fatal("message for unknown topic should not be dispatched")
 	case <-time.After(300 * time.Millisecond):
-		// expected
 	}
 
-	// Should NOT be saved
 	assert.Empty(t, store.getSaved())
 }
 
@@ -82,15 +101,14 @@ func TestPipeline_MultipleTopicsSimultaneously(t *testing.T) {
 	dispatchChan := make(chan message.Message, 50)
 	topics := []string{"t/1", "t/2", "t/3"}
 
-	pipeline := NewPipeline(topics, store, dispatchChan, 20, observability.NopLogger{})
+	p := NewPipeline(topics, store, dispatchChan, 20, observability.NopLogger{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	inputChan := make(chan message.Message, 50)
-	go pipeline.Start(ctx, inputChan)
+	go p.Start(ctx, inputChan)
 
-	// Send 5 messages per topic
 	total := 0
 	for _, topic := range topics {
 		for i := 0; i < 5; i++ {
@@ -104,7 +122,6 @@ func TestPipeline_MultipleTopicsSimultaneously(t *testing.T) {
 		}
 	}
 
-	// Collect all dispatched
 	for i := 0; i < total; i++ {
 		select {
 		case <-dispatchChan:
@@ -121,14 +138,14 @@ func TestPipeline_GracefulShutdown(t *testing.T) {
 	dispatchChan := make(chan message.Message, 10)
 	topics := []string{"topic/a"}
 
-	pipeline := NewPipeline(topics, store, dispatchChan, 10, observability.NopLogger{})
+	p := NewPipeline(topics, store, dispatchChan, 10, observability.NopLogger{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	inputChan := make(chan message.Message, 10)
 
 	done := make(chan struct{})
 	go func() {
-		pipeline.Start(ctx, inputChan)
+		p.Start(ctx, inputChan)
 		close(done)
 	}()
 
@@ -136,37 +153,33 @@ func TestPipeline_GracefulShutdown(t *testing.T) {
 
 	select {
 	case <-done:
-		// pipeline stopped
 	case <-time.After(2 * time.Second):
 		t.Fatal("pipeline did not stop after context cancel")
 	}
 }
 
 func TestPipeline_MessagePersistedBeforeDispatch(t *testing.T) {
-	// This test verifies the critical invariant: save THEN forward
 	store := &mockStore{}
 	dispatchChan := make(chan message.Message, 10)
 	topics := []string{"topic/a"}
 
-	pipeline := NewPipeline(topics, store, dispatchChan, 10, observability.NopLogger{})
+	p := NewPipeline(topics, store, dispatchChan, 10, observability.NopLogger{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	inputChan := make(chan message.Message, 10)
-	go pipeline.Start(ctx, inputChan)
+	go p.Start(ctx, inputChan)
 
 	msg := message.Message{ClientID: "c1", Topic: "topic/a", Payload: []byte("critical"), Timestamp: time.Now()}
 	inputChan <- msg
 
-	// Wait for dispatch
 	select {
 	case <-dispatchChan:
 	case <-time.After(2 * time.Second):
 		t.Fatal("timeout")
 	}
 
-	// At this point, the message MUST have been saved
 	saved := store.getSaved()
 	require.Len(t, saved, 1)
 	assert.Equal(t, []byte("critical"), saved[0].Payload)

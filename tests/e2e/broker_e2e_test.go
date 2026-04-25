@@ -14,13 +14,13 @@ import (
 	"microbroker-mqtt-edge/internal/modules/auth"
 	clientmanager "microbroker-mqtt-edge/internal/modules/connection/client_manager"
 	"microbroker-mqtt-edge/internal/modules/connection/server"
-	"microbroker-mqtt-edge/internal/modules/ingestion/adapters/outbound/database"
-	"microbroker-mqtt-edge/internal/modules/ingestion/application"
+	"microbroker-mqtt-edge/internal/modules/ingestion/pipeline"
 	"microbroker-mqtt-edge/internal/modules/processing"
 	processingdomain "microbroker-mqtt-edge/internal/modules/processing/domain"
 	"microbroker-mqtt-edge/internal/modules/protocol"
 	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
 	platformdb "microbroker-mqtt-edge/internal/platform/database"
+	ingestiondb "microbroker-mqtt-edge/internal/platform/database/ingestion"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,7 +55,7 @@ func (w *collectWorker) messages() []message.Message {
 // broker bundles all components for a running test broker.
 type broker struct {
 	server *server.Server
-	store  *database.SQLiteRepository
+	store  *ingestiondb.SQLiteRepository
 	worker *collectWorker
 	fanout *processing.FanOut
 	cancel context.CancelFunc
@@ -76,7 +76,7 @@ func setupBroker(t *testing.T, topics []string) *broker {
 	migrator := platformdb.NewMigrator(db)
 	require.NoError(t, migrator.Run(context.Background()))
 
-	store := database.NewSQLiteRepository(db)
+	store := ingestiondb.NewSQLiteRepository(db)
 
 	// Channels — no bridge needed
 	msgChan := make(chan message.Message, 1000)
@@ -88,8 +88,8 @@ func setupBroker(t *testing.T, topics []string) *broker {
 	w := &collectWorker{}
 
 	// Pipeline (ingestion)
-	pipeline := application.NewPipeline(topics, store, processChan, 1000, logger)
-	go pipeline.Start(ctx, msgChan)
+	p := pipeline.NewPipeline(topics, store, processChan, 1000, logger)
+	go p.Start(ctx, msgChan)
 
 	// FanOut (processing)
 	fanout := processing.NewFanOut(processChan, []processingdomain.Worker{w}, logger)

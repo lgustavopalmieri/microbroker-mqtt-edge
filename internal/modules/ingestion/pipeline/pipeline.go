@@ -1,4 +1,4 @@
-package application
+package pipeline
 
 import (
 	"context"
@@ -6,31 +6,7 @@ import (
 	"microbroker-mqtt-edge/internal/common/message"
 )
 
-// Pipeline orchestrates the FIFO queues and routes messages from the input channel
-// to the correct topic queue. Each queue has its own sequential consumer.
-type Pipeline struct {
-	queues       map[string]*Queue
-	store        Store
-	dispatchChan chan<- message.Message
-	bufSize      int
-	logger       Logger
-}
 
-// NewPipeline creates a Pipeline with one FIFO queue per topic.
-func NewPipeline(topics []string, store Store, dispatchChan chan<- message.Message, bufSize int, logger Logger) *Pipeline {
-	queues := make(map[string]*Queue, len(topics))
-	for _, topic := range topics {
-		queues[topic] = NewQueue(topic, bufSize)
-	}
-
-	return &Pipeline{
-		queues:       queues,
-		store:        store,
-		dispatchChan: dispatchChan,
-		bufSize:      bufSize,
-		logger:       logger,
-	}
-}
 
 // Start launches all queue consumers and begins routing messages from inputChan
 // to the appropriate topic queue. Blocks until context is cancelled or inputChan is closed.

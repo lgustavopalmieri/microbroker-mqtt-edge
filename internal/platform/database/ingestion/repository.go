@@ -1,4 +1,4 @@
-package database
+package ingestion
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"microbroker-mqtt-edge/internal/common/message"
-	ingestiondomain "microbroker-mqtt-edge/internal/modules/ingestion/domain"
 )
 
 // SQLiteRepository is the outbound adapter that implements ingestion.Store
@@ -33,7 +32,7 @@ func (r *SQLiteRepository) SaveRawData(ctx context.Context, msg message.Message)
 
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("%w: begin tx: %v", ingestiondomain.ErrStoreFailure, err)
+		return fmt.Errorf("%w: begin tx: %v", ErrStoreFailure, err)
 	}
 	defer tx.Rollback()
 
@@ -47,11 +46,11 @@ func (r *SQLiteRepository) SaveRawData(ctx context.Context, msg message.Message)
 		string(msg.Payload),
 	)
 	if err != nil {
-		return fmt.Errorf("%w: insert: %v", ingestiondomain.ErrStoreFailure, err)
+		return fmt.Errorf("%w: insert: %v", ErrStoreFailure, err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("%w: commit: %v", ingestiondomain.ErrStoreFailure, err)
+		return fmt.Errorf("%w: commit: %v", ErrStoreFailure, err)
 	}
 
 	return nil

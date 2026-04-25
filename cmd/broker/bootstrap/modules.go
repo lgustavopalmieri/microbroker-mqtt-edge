@@ -9,17 +9,17 @@ import (
 	"microbroker-mqtt-edge/internal/modules/auth"
 	clientmanager "microbroker-mqtt-edge/internal/modules/connection/client_manager"
 	"microbroker-mqtt-edge/internal/modules/connection/server"
-	"microbroker-mqtt-edge/internal/modules/ingestion/adapters/outbound/database"
-	"microbroker-mqtt-edge/internal/modules/ingestion/application"
+	"microbroker-mqtt-edge/internal/modules/ingestion/pipeline"
 	"microbroker-mqtt-edge/internal/modules/processing"
 	processingdomain "microbroker-mqtt-edge/internal/modules/processing/domain"
 	"microbroker-mqtt-edge/internal/modules/processing/workers"
 	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
+	ingestiondb "microbroker-mqtt-edge/internal/platform/database/ingestion"
 )
 
 // Modules holds all initialized business modules.
 type Modules struct {
-	Pipeline  *application.Pipeline
+	Pipeline  *pipeline.Pipeline
 	FanOut    *processing.FanOut
 	Server    *server.Server
 	ClientMgr *clientmanager.ClientManager
@@ -37,14 +37,14 @@ func InitModules(cfg *config.Config, db *sql.DB, logger observability.Logger) (*
 	processChan := make(chan message.Message, cfg.QueueBufferSize)
 
 	// Store adapter
-	store := database.NewSQLiteRepository(db)
+	store := ingestiondb.NewSQLiteRepository(db)
 
 	// Workers
 	loggerWorker := workers.NewLoggerWorker(logger)
 	allWorkers := []processingdomain.Worker{loggerWorker}
 
 	// Ingestion pipeline
-	pipeline := application.NewPipeline(cfg.Topics, store, processChan, cfg.QueueBufferSize, logger)
+	p := pipeline.NewPipeline(cfg.Topics, store, processChan, cfg.QueueBufferSize, logger)
 
 	// Processing fan-out
 	fanout := processing.NewFanOut(processChan, allWorkers, logger)
@@ -62,7 +62,7 @@ func InitModules(cfg *config.Config, db *sql.DB, logger observability.Logger) (*
 	srv := server.NewServer(cfg.Address(), connMgr, authenticator, topics, msgChan, cfg.Timezone, logger)
 
 	return &Modules{
-		Pipeline:    pipeline,
+		Pipeline:    p,
 		FanOut:      fanout,
 		Server:      srv,
 		ClientMgr:   connMgr,
