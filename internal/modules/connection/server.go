@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"microbroker-mqtt-edge/internal/common/message"
-	"microbroker-mqtt-edge/internal/modules/connection/domain"
+	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
 )
 
 // Server is the TCP listener that accepts MQTT client connections.
@@ -14,7 +14,7 @@ type Server struct {
 	listener net.Listener
 	connMgr  *ClientManager
 	auth     Authenticator
-	topics   *domain.TopicRegistry
+	topics   *topicdomain.TopicRegistry
 	msgChan  chan<- message.Message
 	timezone string
 	logger   Logger
@@ -26,7 +26,7 @@ func NewServer(
 	address string,
 	connMgr *ClientManager,
 	auth Authenticator,
-	topics *domain.TopicRegistry,
+	topics *topicdomain.TopicRegistry,
 	msgChan chan<- message.Message,
 	timezone string,
 	logger Logger,

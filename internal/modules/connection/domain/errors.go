@@ -11,10 +11,4 @@ var (
 
 	// ErrConnectionTimeout indicates the client did not send a CONNECT packet in time.
 	ErrConnectionTimeout = errors.New("connection: connection timeout")
-
-	// ErrInvalidTopicCount indicates the topic count is outside the allowed range (1-5).
-	ErrInvalidTopicCount = errors.New("connection: topic count must be between 1 and 5")
-
-	// ErrEmptyTopicName indicates an empty topic name was provided.
-	ErrEmptyTopicName = errors.New("connection: empty topic name")
 )

@@ -12,12 +12,12 @@ import (
 	"microbroker-mqtt-edge/internal/common/observability"
 	"microbroker-mqtt-edge/internal/modules/auth"
 	"microbroker-mqtt-edge/internal/modules/connection"
-	connectiondomain "microbroker-mqtt-edge/internal/modules/connection/domain"
 	"microbroker-mqtt-edge/internal/modules/ingestion/adapters/outbound/database"
 	"microbroker-mqtt-edge/internal/modules/ingestion/application"
 	"microbroker-mqtt-edge/internal/modules/processing"
 	processingdomain "microbroker-mqtt-edge/internal/modules/processing/domain"
 	"microbroker-mqtt-edge/internal/modules/protocol"
+	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
 	platformdb "microbroker-mqtt-edge/internal/platform/database"
 
 	"github.com/stretchr/testify/assert"
@@ -97,7 +97,7 @@ func setupBroker(t *testing.T, topics []string) *broker {
 	authenticator := auth.NewEnvAuthenticator("admin", "secret")
 
 	// Connection server
-	topicReg, err := connectiondomain.NewTopicRegistry(topics)
+	topicReg, err := topicdomain.NewTopicRegistry(topics)
 	require.NoError(t, err)
 
 	clientMgr := connection.NewClientManager(5)
