@@ -218,7 +218,8 @@ func TestE2E_HappyPath_FullPipeline(t *testing.T) {
 }
 
 func TestE2E_MultipleClientsSimultaneous(t *testing.T) {
-	b := setupBroker(t, []string{"data/sensor"})
+	topics := []string{"data/sensor-A", "data/sensor-B", "data/sensor-C"}
+	b := setupBroker(t, topics)
 
 	const numClients = 3
 	const msgsPerClient = 10
@@ -230,12 +231,13 @@ func TestE2E_MultipleClientsSimultaneous(t *testing.T) {
 		go func(clientIdx int) {
 			defer wg.Done()
 			clientID := "client-" + string(rune('A'+clientIdx))
+			topic := topics[clientIdx]
 			conn := connectClient(t, b.addr, clientID, "admin", "secret")
 			defer conn.Close()
 
 			for j := 0; j < msgsPerClient; j++ {
 				payload := []byte(`{"client":` + string(rune('A'+clientIdx)) + `,"seq":` + string(rune('0'+j)) + `}`)
-				publishMessage(t, conn, "data/sensor", payload, 0, 0)
+				publishMessage(t, conn, topic, payload, 0, 0)
 			}
 		}(i)
 	}
@@ -245,13 +247,16 @@ func TestE2E_MultipleClientsSimultaneous(t *testing.T) {
 	assert.GreaterOrEqual(t, len(workerMsgs), total)
 
 	ctx := context.Background()
-	dbMsgs, err := b.store.GetByTopic(ctx, "data/sensor")
-	require.NoError(t, err)
-	assert.Len(t, dbMsgs, total)
+	for _, topic := range topics {
+		dbMsgs, err := b.store.GetByTopic(ctx, topic)
+		require.NoError(t, err)
+		assert.Len(t, dbMsgs, msgsPerClient)
+	}
 }
 
 func TestE2E_SixthClientRejected(t *testing.T) {
-	b := setupBroker(t, []string{"t/1"})
+	topics := []string{"t/1", "t/2", "t/3", "t/4", "t/5"}
+	b := setupBroker(t, topics)
 
 	conns := make([]net.Conn, 5)
 	for i := 0; i < 5; i++ {
@@ -260,6 +265,7 @@ func TestE2E_SixthClientRejected(t *testing.T) {
 		defer conns[i].Close()
 	}
 
+	// 6th client should be rejected (max clients = 5)
 	conn6, err := net.DialTimeout("tcp", b.addr, 2*time.Second)
 	require.NoError(t, err)
 	defer conn6.Close()
@@ -274,17 +280,20 @@ func TestE2E_SixthClientRejected(t *testing.T) {
 		assert.Equal(t, protocol.ConnRefusedUnavailable, rc)
 	}
 
+	// Each client publishes to its own topic (ownership: 1 client per topic)
 	for i := 0; i < 5; i++ {
-		publishMessage(t, conns[i], "t/1", []byte(`{"i":`+string(rune('0'+i))+`}`), 0, 0)
+		publishMessage(t, conns[i], topics[i], []byte(`{"i":`+string(rune('0'+i))+`}`), 0, 0)
 	}
 
 	workerMsgs := waitForWorkerMessages(t, b.worker, 5, 5*time.Second)
 	assert.GreaterOrEqual(t, len(workerMsgs), 5)
 
 	ctx := context.Background()
-	dbMsgs, err := b.store.GetByTopic(ctx, "t/1")
-	require.NoError(t, err)
-	assert.Len(t, dbMsgs, 5)
+	for _, topic := range topics {
+		dbMsgs, err := b.store.GetByTopic(ctx, topic)
+		require.NoError(t, err)
+		assert.Len(t, dbMsgs, 1)
+	}
 }
 
 func TestE2E_AuthFailureDoesNotPollutePipeline(t *testing.T) {
@@ -364,4 +373,56 @@ func TestE2E_DisallowedTopicNotPersisted(t *testing.T) {
 	allowedMsgs, err = b.store.GetByTopic(ctx, "allowed/topic")
 	require.NoError(t, err)
 	assert.Len(t, allowedMsgs, 2)
+}
+
+func TestE2E_TopicOwnership_RejectSecondClient(t *testing.T) {
+	b := setupBroker(t, []string{"machine/status"})
+
+	// Client A claims "machine/status"
+	connA := connectClient(t, b.addr, "device-A", "admin", "secret")
+	defer connA.Close()
+
+	publishMessage(t, connA, "machine/status", []byte(`{"owner":"A"}`), 0, 0)
+	waitForWorkerMessages(t, b.worker, 1, 5*time.Second)
+
+	// Client B tries to publish to the same topic — should be silently rejected
+	connB := connectClient(t, b.addr, "device-B", "admin", "secret")
+	defer connB.Close()
+
+	connB.Write(testutil.BuildPublishPacket("machine/status", []byte(`{"intruder":"B"}`), 0, 0))
+	time.Sleep(200 * time.Millisecond)
+
+	// Only 1 message should exist (from client A)
+	ctx := context.Background()
+	dbMsgs, err := b.store.GetByTopic(ctx, "machine/status")
+	require.NoError(t, err)
+	assert.Len(t, dbMsgs, 1)
+	assert.Equal(t, "device-A", dbMsgs[0].ClientID)
+}
+
+func TestE2E_TopicOwnership_ReleasedOnDisconnect(t *testing.T) {
+	b := setupBroker(t, []string{"machine/status"})
+
+	// Client A claims and disconnects
+	connA := connectClient(t, b.addr, "device-A", "admin", "secret")
+	publishMessage(t, connA, "machine/status", []byte(`{"from":"A"}`), 0, 0)
+	waitForWorkerMessages(t, b.worker, 1, 5*time.Second)
+
+	connA.Write([]byte{0xE0, 0x00}) // DISCONNECT
+	connA.Close()
+	time.Sleep(150 * time.Millisecond)
+
+	// Client B should now be able to claim the topic
+	connB := connectClient(t, b.addr, "device-B", "admin", "secret")
+	defer connB.Close()
+
+	publishMessage(t, connB, "machine/status", []byte(`{"from":"B"}`), 0, 0)
+	waitForWorkerMessages(t, b.worker, 2, 5*time.Second)
+
+	ctx := context.Background()
+	dbMsgs, err := b.store.GetByTopic(ctx, "machine/status")
+	require.NoError(t, err)
+	assert.Len(t, dbMsgs, 2)
+	assert.Equal(t, "device-A", dbMsgs[0].ClientID)
+	assert.Equal(t, "device-B", dbMsgs[1].ClientID)
 }

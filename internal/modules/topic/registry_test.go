@@ -1,6 +1,7 @@
 package topic
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -63,4 +64,139 @@ func TestNewTopicRegistry_FiveTopics(t *testing.T) {
 	reg, err := NewTopicRegistry(topics)
 	require.NoError(t, err)
 	assert.Equal(t, 5, len(reg.Topics()))
+}
+
+// --- Ownership tests ---
+
+func TestClaim_FirstClientBecomesOwner(t *testing.T) {
+	reg, err := NewTopicRegistry([]string{"machine/status", "machine/alarm"})
+	require.NoError(t, err)
+
+	err = reg.Claim("machine/status", "client-A")
+	assert.NoError(t, err)
+	assert.Equal(t, "client-A", reg.Owner("machine/status"))
+}
+
+func TestClaim_SameClientIdempotent(t *testing.T) {
+	reg, err := NewTopicRegistry([]string{"machine/status"})
+	require.NoError(t, err)
+
+	require.NoError(t, reg.Claim("machine/status", "client-A"))
+	err = reg.Claim("machine/status", "client-A")
+	assert.NoError(t, err)
+	assert.Equal(t, "client-A", reg.Owner("machine/status"))
+}
+
+func TestClaim_DifferentClientRejected(t *testing.T) {
+	reg, err := NewTopicRegistry([]string{"machine/status"})
+	require.NoError(t, err)
+
+	require.NoError(t, reg.Claim("machine/status", "client-A"))
+	err = reg.Claim("machine/status", "client-B")
+	assert.ErrorIs(t, err, ErrTopicOwnedByAnother)
+	assert.Equal(t, "client-A", reg.Owner("machine/status"))
+}
+
+func TestClaim_DisallowedTopic(t *testing.T) {
+	reg, err := NewTopicRegistry([]string{"machine/status"})
+	require.NoError(t, err)
+
+	err = reg.Claim("not/allowed", "client-A")
+	assert.ErrorIs(t, err, ErrTopicNotAllowed)
+}
+
+func TestClaim_ClientOwnsMultipleTopics(t *testing.T) {
+	reg, err := NewTopicRegistry([]string{"machine/status", "machine/alarm", "machine/oee"})
+	require.NoError(t, err)
+
+	require.NoError(t, reg.Claim("machine/status", "client-A"))
+	require.NoError(t, reg.Claim("machine/alarm", "client-A"))
+	require.NoError(t, reg.Claim("machine/oee", "client-A"))
+
+	assert.Equal(t, "client-A", reg.Owner("machine/status"))
+	assert.Equal(t, "client-A", reg.Owner("machine/alarm"))
+	assert.Equal(t, "client-A", reg.Owner("machine/oee"))
+}
+
+func TestRelease_FreesAllTopicsForClient(t *testing.T) {
+	reg, err := NewTopicRegistry([]string{"machine/status", "machine/alarm"})
+	require.NoError(t, err)
+
+	require.NoError(t, reg.Claim("machine/status", "client-A"))
+	require.NoError(t, reg.Claim("machine/alarm", "client-A"))
+
+	reg.Release("client-A")
+
+	assert.Empty(t, reg.Owner("machine/status"))
+	assert.Empty(t, reg.Owner("machine/alarm"))
+}
+
+func TestRelease_DoesNotAffectOtherClients(t *testing.T) {
+	reg, err := NewTopicRegistry([]string{"machine/status", "machine/alarm"})
+	require.NoError(t, err)
+
+	require.NoError(t, reg.Claim("machine/status", "client-A"))
+	require.NoError(t, reg.Claim("machine/alarm", "client-B"))
+
+	reg.Release("client-A")
+
+	assert.Empty(t, reg.Owner("machine/status"))
+	assert.Equal(t, "client-B", reg.Owner("machine/alarm"))
+}
+
+func TestRelease_AllowsNewOwnerAfterRelease(t *testing.T) {
+	reg, err := NewTopicRegistry([]string{"machine/status"})
+	require.NoError(t, err)
+
+	require.NoError(t, reg.Claim("machine/status", "client-A"))
+	reg.Release("client-A")
+
+	err = reg.Claim("machine/status", "client-B")
+	assert.NoError(t, err)
+	assert.Equal(t, "client-B", reg.Owner("machine/status"))
+}
+
+func TestRelease_NoopForUnknownClient(t *testing.T) {
+	reg, err := NewTopicRegistry([]string{"machine/status"})
+	require.NoError(t, err)
+
+	require.NoError(t, reg.Claim("machine/status", "client-A"))
+	reg.Release("unknown-client")
+
+	assert.Equal(t, "client-A", reg.Owner("machine/status"))
+}
+
+func TestOwner_UnownedTopicReturnsEmpty(t *testing.T) {
+	reg, err := NewTopicRegistry([]string{"machine/status"})
+	require.NoError(t, err)
+
+	assert.Empty(t, reg.Owner("machine/status"))
+}
+
+func TestClaim_ConcurrentAccess(t *testing.T) {
+	reg, err := NewTopicRegistry([]string{"machine/status"})
+	require.NoError(t, err)
+
+	const goroutines = 50
+	results := make(chan error, goroutines)
+
+	for i := range goroutines {
+		go func(id int) {
+			results <- reg.Claim("machine/status", fmt.Sprintf("client-%d", id))
+		}(i)
+	}
+
+	var successes, failures int
+	for range goroutines {
+		if err := <-results; err != nil {
+			failures++
+		} else {
+			successes++
+		}
+	}
+
+	// Exactly one client should win ownership
+	assert.Equal(t, 1, successes, "exactly one goroutine should claim ownership")
+	assert.Equal(t, goroutines-1, failures)
+	assert.NotEmpty(t, reg.Owner("machine/status"))
 }

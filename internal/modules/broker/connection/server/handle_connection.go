@@ -50,6 +50,7 @@ func (s *Server) handleConnection(ctx context.Context, conn net.Conn) {
 		return
 	}
 	defer s.connMgr.Remove(cl.ID)
+	defer s.topics.Release(cl.ID)
 
 	// 5. Send CONNACK success
 	conn.Write(protocol.EncodeConnack(false, protocol.ConnAccepted))

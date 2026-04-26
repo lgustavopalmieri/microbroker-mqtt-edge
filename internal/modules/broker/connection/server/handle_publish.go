@@ -16,8 +16,8 @@ func (s *Server) handlePublish(ctx context.Context, cl *client.Client, header pr
 		return
 	}
 
-	if !s.topics.IsAllowed(pkt.TopicName) {
-		s.logger.Debug("publish to disallowed topic", "client", cl.ID, "topic", pkt.TopicName)
+	if err := s.topics.Claim(pkt.TopicName, cl.ID); err != nil {
+		s.logger.Debug("publish rejected", "client", cl.ID, "topic", pkt.TopicName, "error", err)
 		// Still send PUBACK if QoS 1 to avoid client retries
 		if pkt.QoS == 1 {
 			cl.Write(protocol.EncodePuback(pkt.PacketID))
