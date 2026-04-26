@@ -10,7 +10,7 @@ import (
 	"microbroker-mqtt-edge/internal/common/observability"
 	clientmanager "microbroker-mqtt-edge/internal/modules/broker/connection/client_manager"
 	"microbroker-mqtt-edge/internal/modules/broker/connection/server"
-	topicdomain "microbroker-mqtt-edge/internal/modules/topic"
+	topicdomain "microbroker-mqtt-edge/internal/modules/broker/topic"
 )
 
 type stubAuth struct{ allow bool }

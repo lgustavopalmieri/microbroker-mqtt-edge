@@ -6,7 +6,7 @@ import (
 
 	"microbroker-mqtt-edge/internal/common/message"
 	clientmanager "microbroker-mqtt-edge/internal/modules/broker/connection/client_manager"
-	topicdomain "microbroker-mqtt-edge/internal/modules/topic"
+	topicdomain "microbroker-mqtt-edge/internal/modules/broker/topic"
 )
 
 const connectTimeout = 5 * time.Second

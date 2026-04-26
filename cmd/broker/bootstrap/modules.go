@@ -10,9 +10,9 @@ import (
 	clientmanager "microbroker-mqtt-edge/internal/modules/broker/connection/client_manager"
 	"microbroker-mqtt-edge/internal/modules/broker/connection/server"
 	"microbroker-mqtt-edge/internal/modules/broker/ingestion/pipeline"
+	topicdomain "microbroker-mqtt-edge/internal/modules/broker/topic"
 	"microbroker-mqtt-edge/internal/modules/processing/fanout"
 	loggerworker "microbroker-mqtt-edge/internal/modules/processing/workers/logger"
-	topicdomain "microbroker-mqtt-edge/internal/modules/topic"
 	ingestiondb "microbroker-mqtt-edge/internal/platform/database/ingestion"
 )
 
