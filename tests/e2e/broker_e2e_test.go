@@ -17,7 +17,7 @@ import (
 	"microbroker-mqtt-edge/internal/modules/broker/ingestion/pipeline"
 	"microbroker-mqtt-edge/internal/modules/broker/protocol"
 	"microbroker-mqtt-edge/internal/modules/processing/fanout"
-	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
+	topicdomain "microbroker-mqtt-edge/internal/modules/topic"
 	platformdb "microbroker-mqtt-edge/internal/platform/database"
 	ingestiondb "microbroker-mqtt-edge/internal/platform/database/ingestion"
 

@@ -15,7 +15,7 @@ import (
 	clientmanager "microbroker-mqtt-edge/internal/modules/broker/connection/client_manager"
 	"microbroker-mqtt-edge/internal/modules/broker/connection/server"
 	"microbroker-mqtt-edge/internal/modules/broker/protocol"
-	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
+	topicdomain "microbroker-mqtt-edge/internal/modules/topic"
 )
 
 // testServer bundles the server with its dependencies for test access.
