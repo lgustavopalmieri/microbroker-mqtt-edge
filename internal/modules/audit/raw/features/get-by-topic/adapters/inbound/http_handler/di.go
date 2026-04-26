@@ -1,7 +1,7 @@
 package http_handler
 
 import (
-	"microbroker-mqtt-edge/internal/modules/audit/features/get-by-topic/application"
+	"microbroker-mqtt-edge/internal/modules/audit/raw/features/get-by-topic/application"
 )
 
 // Handler exposes the HTTP endpoint for get-by-topic.

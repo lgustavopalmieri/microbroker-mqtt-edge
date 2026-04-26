@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"microbroker-mqtt-edge/internal/common/observability"
-	"microbroker-mqtt-edge/internal/modules/audit/domain"
+	"microbroker-mqtt-edge/internal/modules/audit/raw/domain"
 )
 
 // Repository defines the outbound port for reading audit records by topic.

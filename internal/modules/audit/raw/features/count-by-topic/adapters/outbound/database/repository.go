@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"microbroker-mqtt-edge/internal/modules/audit/domain"
+	"microbroker-mqtt-edge/internal/modules/audit/raw/domain"
 )
 
 // SQLiteRepository implements the count-by-topic Repository port.

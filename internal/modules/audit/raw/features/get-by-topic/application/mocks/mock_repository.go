@@ -11,7 +11,7 @@ package mocks
 
 import (
 	context "context"
-	domain "microbroker-mqtt-edge/internal/modules/audit/domain"
+	domain "microbroker-mqtt-edge/internal/modules/audit/raw/domain"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"

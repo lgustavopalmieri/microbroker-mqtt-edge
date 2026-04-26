@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"microbroker-mqtt-edge/internal/modules/audit/domain"
+	"microbroker-mqtt-edge/internal/modules/audit/raw/domain"
 )
 
 // RegisterRoutes registers the get-by-topic endpoint on the given mux.
