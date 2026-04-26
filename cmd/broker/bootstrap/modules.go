@@ -7,21 +7,21 @@ import (
 	"microbroker-mqtt-edge/internal/common/message"
 	"microbroker-mqtt-edge/internal/common/observability"
 	"microbroker-mqtt-edge/internal/modules/auth"
-	"microbroker-mqtt-edge/internal/modules/connection"
-	"microbroker-mqtt-edge/internal/modules/ingestion/adapters/outbound/database"
-	"microbroker-mqtt-edge/internal/modules/ingestion/application"
-	"microbroker-mqtt-edge/internal/modules/processing"
-	processingdomain "microbroker-mqtt-edge/internal/modules/processing/domain"
-	"microbroker-mqtt-edge/internal/modules/processing/workers"
-	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
+	clientmanager "microbroker-mqtt-edge/internal/modules/broker/connection/client_manager"
+	"microbroker-mqtt-edge/internal/modules/broker/connection/server"
+	"microbroker-mqtt-edge/internal/modules/broker/ingestion/pipeline"
+	topicdomain "microbroker-mqtt-edge/internal/modules/broker/topic"
+	"microbroker-mqtt-edge/internal/modules/processing/fanout"
+	loggerworker "microbroker-mqtt-edge/internal/modules/processing/workers/logger"
+	ingestiondb "microbroker-mqtt-edge/internal/platform/database/ingestion"
 )
 
 // Modules holds all initialized business modules.
 type Modules struct {
-	Pipeline  *application.Pipeline
-	FanOut    *processing.FanOut
-	Server    *connection.Server
-	ClientMgr *connection.ClientManager
+	Pipeline  *pipeline.Pipeline
+	FanOut    *fanout.FanOut
+	Server    *server.Server
+	ClientMgr *clientmanager.ClientManager
 
 	// channels owned by bootstrap, passed to modules
 	MsgChan     chan message.Message
@@ -36,17 +36,17 @@ func InitModules(cfg *config.Config, db *sql.DB, logger observability.Logger) (*
 	processChan := make(chan message.Message, cfg.QueueBufferSize)
 
 	// Store adapter
-	store := database.NewSQLiteRepository(db)
+	store := ingestiondb.NewSQLiteRepository(db)
 
 	// Workers
-	loggerWorker := workers.NewLoggerWorker(logger)
-	allWorkers := []processingdomain.Worker{loggerWorker}
+	lw := loggerworker.NewLoggerWorker(logger)
+	allWorkers := []fanout.Worker{lw}
 
 	// Ingestion pipeline
-	pipeline := application.NewPipeline(cfg.Topics, store, processChan, cfg.QueueBufferSize, logger)
+	p := pipeline.NewPipeline(cfg.Topics, store, processChan, cfg.QueueBufferSize, logger)
 
 	// Processing fan-out
-	fanout := processing.NewFanOut(processChan, allWorkers, logger)
+	fo := fanout.NewFanOut(processChan, allWorkers, logger)
 
 	// Auth
 	authenticator := auth.NewEnvAuthenticator(cfg.Username, cfg.Password)
@@ -57,14 +57,14 @@ func InitModules(cfg *config.Config, db *sql.DB, logger observability.Logger) (*
 		return nil, err
 	}
 
-	clientMgr := connection.NewClientManager(cfg.MaxClients)
-	server := connection.NewServer(cfg.Address(), clientMgr, authenticator, topics, msgChan, cfg.Timezone, logger)
+	connMgr := clientmanager.NewClientManager(cfg.MaxClients)
+	srv := server.NewServer(cfg.Address(), connMgr, authenticator, topics, msgChan, cfg.Timezone, logger)
 
 	return &Modules{
-		Pipeline:    pipeline,
-		FanOut:      fanout,
-		Server:      server,
-		ClientMgr:   clientMgr,
+		Pipeline:    p,
+		FanOut:      fo,
+		Server:      srv,
+		ClientMgr:   connMgr,
 		MsgChan:     msgChan,
 		ProcessChan: processChan,
 	}, nil

@@ -10,15 +10,16 @@ import (
 
 	"microbroker-mqtt-edge/internal/common/message"
 	"microbroker-mqtt-edge/internal/common/observability"
+	"microbroker-mqtt-edge/internal/common/testutil"
 	"microbroker-mqtt-edge/internal/modules/auth"
-	"microbroker-mqtt-edge/internal/modules/connection"
-	"microbroker-mqtt-edge/internal/modules/ingestion/adapters/outbound/database"
-	"microbroker-mqtt-edge/internal/modules/ingestion/application"
-	"microbroker-mqtt-edge/internal/modules/processing"
-	processingdomain "microbroker-mqtt-edge/internal/modules/processing/domain"
-	"microbroker-mqtt-edge/internal/modules/protocol"
-	topicdomain "microbroker-mqtt-edge/internal/modules/topic/domain"
+	clientmanager "microbroker-mqtt-edge/internal/modules/broker/connection/client_manager"
+	"microbroker-mqtt-edge/internal/modules/broker/connection/server"
+	"microbroker-mqtt-edge/internal/modules/broker/ingestion/pipeline"
+	"microbroker-mqtt-edge/internal/modules/broker/protocol"
+	topicdomain "microbroker-mqtt-edge/internal/modules/broker/topic"
+	"microbroker-mqtt-edge/internal/modules/processing/fanout"
 	platformdb "microbroker-mqtt-edge/internal/platform/database"
+	ingestiondb "microbroker-mqtt-edge/internal/platform/database/ingestion"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,10 +53,10 @@ func (w *collectWorker) messages() []message.Message {
 
 // broker bundles all components for a running test broker.
 type broker struct {
-	server *connection.Server
-	store  *database.SQLiteRepository
+	server *server.Server
+	store  *ingestiondb.SQLiteRepository
 	worker *collectWorker
-	fanout *processing.FanOut
+	fo     *fanout.FanOut
 	cancel context.CancelFunc
 	addr   string
 	topics []string
@@ -74,7 +75,7 @@ func setupBroker(t *testing.T, topics []string) *broker {
 	migrator := platformdb.NewMigrator(db)
 	require.NoError(t, migrator.Run(context.Background()))
 
-	store := database.NewSQLiteRepository(db)
+	store := ingestiondb.NewSQLiteRepository(db)
 
 	// Channels — no bridge needed
 	msgChan := make(chan message.Message, 1000)
@@ -86,12 +87,12 @@ func setupBroker(t *testing.T, topics []string) *broker {
 	w := &collectWorker{}
 
 	// Pipeline (ingestion)
-	pipeline := application.NewPipeline(topics, store, processChan, 1000, logger)
-	go pipeline.Start(ctx, msgChan)
+	p := pipeline.NewPipeline(topics, store, processChan, 1000, logger)
+	go p.Start(ctx, msgChan)
 
 	// FanOut (processing)
-	fanout := processing.NewFanOut(processChan, []processingdomain.Worker{w}, logger)
-	go fanout.Start(ctx)
+	fo := fanout.NewFanOut(processChan, []fanout.Worker{w}, logger)
+	go fo.Start(ctx)
 
 	// Auth
 	authenticator := auth.NewEnvAuthenticator("admin", "secret")
@@ -100,8 +101,8 @@ func setupBroker(t *testing.T, topics []string) *broker {
 	topicReg, err := topicdomain.NewTopicRegistry(topics)
 	require.NoError(t, err)
 
-	clientMgr := connection.NewClientManager(5)
-	srv := connection.NewServer("127.0.0.1:0", clientMgr, authenticator, topicReg, msgChan, "UTC", logger)
+	clientMgr := clientmanager.NewClientManager(5)
+	srv := server.NewServer("127.0.0.1:0", clientMgr, authenticator, topicReg, msgChan, "UTC", logger)
 
 	go func() {
 		srv.ListenAndServe(ctx)
@@ -117,14 +118,14 @@ func setupBroker(t *testing.T, topics []string) *broker {
 	t.Cleanup(func() {
 		cancel()
 		srv.Close()
-		fanout.Close()
+		fo.Close()
 	})
 
 	return &broker{
 		server: srv,
 		store:  store,
 		worker: w,
-		fanout: fanout,
+		fo:     fo,
 		cancel: cancel,
 		addr:   srv.Addr().String(),
 		topics: topics,
@@ -137,9 +138,9 @@ func connectClient(t *testing.T, addr, clientID, user, pass string) net.Conn {
 	conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
 	require.NoError(t, err)
 
-	conn.Write(buildConnectPacket(clientID, user, pass, 60))
+	conn.Write(testutil.BuildConnectPacket(clientID, user, pass, 60))
 
-	_, rc := readConnack(t, conn)
+	_, rc := testutil.ReadConnack(t, conn)
 	require.Equal(t, protocol.ConnAccepted, rc, "expected CONNACK accepted")
 	return conn
 }
@@ -150,78 +151,18 @@ func connectClientRaw(t *testing.T, addr, clientID, user, pass string) (net.Conn
 	conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
 	require.NoError(t, err)
 
-	conn.Write(buildConnectPacket(clientID, user, pass, 60))
-	_, rc := readConnack(t, conn)
+	conn.Write(testutil.BuildConnectPacket(clientID, user, pass, 60))
+	_, rc := testutil.ReadConnack(t, conn)
 	return conn, rc
 }
 
 // publishMessage sends a PUBLISH packet. If QoS 1, reads and validates PUBACK.
 func publishMessage(t *testing.T, conn net.Conn, topic string, payload []byte, qos byte, packetID uint16) {
 	t.Helper()
-	conn.Write(buildPublishPacket(topic, payload, qos, packetID))
+	conn.Write(testutil.BuildPublishPacket(topic, payload, qos, packetID))
 	if qos == 1 {
-		readPuback(t, conn, packetID)
+		testutil.ReadPuback(t, conn, packetID)
 	}
-}
-
-// --- packet builders ---
-
-func buildConnectPacket(clientID, username, password string, keepAlive uint16) []byte {
-	var payload []byte
-	payload = append(payload, 0x00, 0x04, 'M', 'Q', 'T', 'T') // Protocol Name
-	payload = append(payload, 0x04)                           // Protocol Level
-	payload = append(payload, 0xC2)                           // Flags: Username+Password+CleanSession
-	payload = append(payload, byte(keepAlive>>8), byte(keepAlive&0xFF))
-	payload = append(payload, protocol.WriteUTF8String(clientID)...)
-	payload = append(payload, protocol.WriteUTF8String(username)...)
-	passBytes := []byte(password)
-	payload = append(payload, byte(len(passBytes)>>8), byte(len(passBytes)&0xFF))
-	payload = append(payload, passBytes...)
-
-	var pkt []byte
-	pkt = append(pkt, 0x10) // CONNECT
-	pkt = append(pkt, protocol.EncodeRemainingLength(len(payload))...)
-	pkt = append(pkt, payload...)
-	return pkt
-}
-
-func buildPublishPacket(topic string, payload []byte, qos byte, packetID uint16) []byte {
-	var data []byte
-	data = append(data, protocol.WriteUTF8String(topic)...)
-	if qos > 0 {
-		data = append(data, byte(packetID>>8), byte(packetID&0xFF))
-	}
-	data = append(data, payload...)
-
-	flags := qos << 1
-	var pkt []byte
-	pkt = append(pkt, 0x30|flags)
-	pkt = append(pkt, protocol.EncodeRemainingLength(len(data))...)
-	pkt = append(pkt, data...)
-	return pkt
-}
-
-func readConnack(t *testing.T, conn net.Conn) (bool, protocol.ConnackReturnCode) {
-	t.Helper()
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-	buf := make([]byte, 4)
-	_, err := io.ReadFull(conn, buf)
-	require.NoError(t, err)
-	require.Equal(t, byte(0x20), buf[0])
-	require.Equal(t, byte(0x02), buf[1])
-	sessionPresent := buf[2]&0x01 != 0
-	return sessionPresent, protocol.ConnackReturnCode(buf[3])
-}
-
-func readPuback(t *testing.T, conn net.Conn, expectedID uint16) {
-	t.Helper()
-	conn.SetReadDeadline(time.Now().Add(3 * time.Second))
-	buf := make([]byte, 4)
-	_, err := io.ReadFull(conn, buf)
-	require.NoError(t, err)
-	require.Equal(t, byte(0x40), buf[0])
-	gotID := uint16(buf[2])<<8 | uint16(buf[3])
-	require.Equal(t, expectedID, gotID)
 }
 
 // waitForWorkerMessages polls the worker until it has at least n messages or timeout.
@@ -277,7 +218,8 @@ func TestE2E_HappyPath_FullPipeline(t *testing.T) {
 }
 
 func TestE2E_MultipleClientsSimultaneous(t *testing.T) {
-	b := setupBroker(t, []string{"data/sensor"})
+	topics := []string{"data/sensor-A", "data/sensor-B", "data/sensor-C"}
+	b := setupBroker(t, topics)
 
 	const numClients = 3
 	const msgsPerClient = 10
@@ -289,12 +231,13 @@ func TestE2E_MultipleClientsSimultaneous(t *testing.T) {
 		go func(clientIdx int) {
 			defer wg.Done()
 			clientID := "client-" + string(rune('A'+clientIdx))
+			topic := topics[clientIdx]
 			conn := connectClient(t, b.addr, clientID, "admin", "secret")
 			defer conn.Close()
 
 			for j := 0; j < msgsPerClient; j++ {
 				payload := []byte(`{"client":` + string(rune('A'+clientIdx)) + `,"seq":` + string(rune('0'+j)) + `}`)
-				publishMessage(t, conn, "data/sensor", payload, 0, 0)
+				publishMessage(t, conn, topic, payload, 0, 0)
 			}
 		}(i)
 	}
@@ -304,13 +247,16 @@ func TestE2E_MultipleClientsSimultaneous(t *testing.T) {
 	assert.GreaterOrEqual(t, len(workerMsgs), total)
 
 	ctx := context.Background()
-	dbMsgs, err := b.store.GetByTopic(ctx, "data/sensor")
-	require.NoError(t, err)
-	assert.Len(t, dbMsgs, total)
+	for _, topic := range topics {
+		dbMsgs, err := b.store.GetByTopic(ctx, topic)
+		require.NoError(t, err)
+		assert.Len(t, dbMsgs, msgsPerClient)
+	}
 }
 
 func TestE2E_SixthClientRejected(t *testing.T) {
-	b := setupBroker(t, []string{"t/1"})
+	topics := []string{"t/1", "t/2", "t/3", "t/4", "t/5"}
+	b := setupBroker(t, topics)
 
 	conns := make([]net.Conn, 5)
 	for i := 0; i < 5; i++ {
@@ -319,11 +265,12 @@ func TestE2E_SixthClientRejected(t *testing.T) {
 		defer conns[i].Close()
 	}
 
+	// 6th client should be rejected (max clients = 5)
 	conn6, err := net.DialTimeout("tcp", b.addr, 2*time.Second)
 	require.NoError(t, err)
 	defer conn6.Close()
 
-	conn6.Write(buildConnectPacket("c5", "admin", "secret", 60))
+	conn6.Write(testutil.BuildConnectPacket("c5", "admin", "secret", 60))
 
 	conn6.SetReadDeadline(time.Now().Add(2 * time.Second))
 	buf := make([]byte, 4)
@@ -333,17 +280,20 @@ func TestE2E_SixthClientRejected(t *testing.T) {
 		assert.Equal(t, protocol.ConnRefusedUnavailable, rc)
 	}
 
+	// Each client publishes to its own topic (ownership: 1 client per topic)
 	for i := 0; i < 5; i++ {
-		publishMessage(t, conns[i], "t/1", []byte(`{"i":`+string(rune('0'+i))+`}`), 0, 0)
+		publishMessage(t, conns[i], topics[i], []byte(`{"i":`+string(rune('0'+i))+`}`), 0, 0)
 	}
 
 	workerMsgs := waitForWorkerMessages(t, b.worker, 5, 5*time.Second)
 	assert.GreaterOrEqual(t, len(workerMsgs), 5)
 
 	ctx := context.Background()
-	dbMsgs, err := b.store.GetByTopic(ctx, "t/1")
-	require.NoError(t, err)
-	assert.Len(t, dbMsgs, 5)
+	for _, topic := range topics {
+		dbMsgs, err := b.store.GetByTopic(ctx, topic)
+		require.NoError(t, err)
+		assert.Len(t, dbMsgs, 1)
+	}
 }
 
 func TestE2E_AuthFailureDoesNotPollutePipeline(t *testing.T) {
@@ -423,4 +373,56 @@ func TestE2E_DisallowedTopicNotPersisted(t *testing.T) {
 	allowedMsgs, err = b.store.GetByTopic(ctx, "allowed/topic")
 	require.NoError(t, err)
 	assert.Len(t, allowedMsgs, 2)
+}
+
+func TestE2E_TopicOwnership_RejectSecondClient(t *testing.T) {
+	b := setupBroker(t, []string{"machine/status"})
+
+	// Client A claims "machine/status"
+	connA := connectClient(t, b.addr, "device-A", "admin", "secret")
+	defer connA.Close()
+
+	publishMessage(t, connA, "machine/status", []byte(`{"owner":"A"}`), 0, 0)
+	waitForWorkerMessages(t, b.worker, 1, 5*time.Second)
+
+	// Client B tries to publish to the same topic — should be silently rejected
+	connB := connectClient(t, b.addr, "device-B", "admin", "secret")
+	defer connB.Close()
+
+	connB.Write(testutil.BuildPublishPacket("machine/status", []byte(`{"intruder":"B"}`), 0, 0))
+	time.Sleep(200 * time.Millisecond)
+
+	// Only 1 message should exist (from client A)
+	ctx := context.Background()
+	dbMsgs, err := b.store.GetByTopic(ctx, "machine/status")
+	require.NoError(t, err)
+	assert.Len(t, dbMsgs, 1)
+	assert.Equal(t, "device-A", dbMsgs[0].ClientID)
+}
+
+func TestE2E_TopicOwnership_ReleasedOnDisconnect(t *testing.T) {
+	b := setupBroker(t, []string{"machine/status"})
+
+	// Client A claims and disconnects
+	connA := connectClient(t, b.addr, "device-A", "admin", "secret")
+	publishMessage(t, connA, "machine/status", []byte(`{"from":"A"}`), 0, 0)
+	waitForWorkerMessages(t, b.worker, 1, 5*time.Second)
+
+	connA.Write([]byte{0xE0, 0x00}) // DISCONNECT
+	connA.Close()
+	time.Sleep(150 * time.Millisecond)
+
+	// Client B should now be able to claim the topic
+	connB := connectClient(t, b.addr, "device-B", "admin", "secret")
+	defer connB.Close()
+
+	publishMessage(t, connB, "machine/status", []byte(`{"from":"B"}`), 0, 0)
+	waitForWorkerMessages(t, b.worker, 2, 5*time.Second)
+
+	ctx := context.Background()
+	dbMsgs, err := b.store.GetByTopic(ctx, "machine/status")
+	require.NoError(t, err)
+	assert.Len(t, dbMsgs, 2)
+	assert.Equal(t, "device-A", dbMsgs[0].ClientID)
+	assert.Equal(t, "device-B", dbMsgs[1].ClientID)
 }

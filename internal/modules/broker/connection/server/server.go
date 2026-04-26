@@ -1,0 +1,67 @@
+package server
+
+import (
+	"context"
+	"net"
+)
+
+// ListenAndServe starts the TCP listener and accept loop.
+// Blocks until the context is cancelled.
+func (s *Server) ListenAndServe(ctx context.Context) error {
+	var err error
+	s.listener, err = net.Listen("tcp", s.address)
+	if err != nil {
+		return err
+	}
+
+	s.logger.Info("broker started", "address", s.address)
+
+	close(s.ready) // signal that listener is ready
+
+	go func() {
+		<-ctx.Done()
+		s.listener.Close()
+	}()
+
+	for {
+		conn, err := s.listener.Accept()
+		if err != nil {
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+				s.logger.Error("accept error", "error", err)
+				continue
+			}
+		}
+
+		if !s.connMgr.CanAccept() {
+			conn.Close()
+			s.logger.Warn("connection rejected: max clients reached")
+			continue
+		}
+
+		go s.handleConnection(ctx, conn)
+	}
+}
+
+// Close stops the listener.
+func (s *Server) Close() error {
+	if s.listener != nil {
+		return s.listener.Close()
+	}
+	return nil
+}
+
+// Addr returns the listener address (useful for tests with port 0).
+func (s *Server) Addr() net.Addr {
+	if s.listener != nil {
+		return s.listener.Addr()
+	}
+	return nil
+}
+
+// Ready returns a channel that is closed when the server's listener is ready.
+func (s *Server) Ready() <-chan struct{} {
+	return s.ready
+}

@@ -8,13 +8,13 @@ import (
 	"microbroker-mqtt-edge/cmd/broker/config"
 	"microbroker-mqtt-edge/internal/common/observability"
 
-	countHandler "microbroker-mqtt-edge/internal/modules/audit/features/count-by-topic/adapters/inbound/http_handler"
-	countDB "microbroker-mqtt-edge/internal/modules/audit/features/count-by-topic/adapters/outbound/database"
-	countApp "microbroker-mqtt-edge/internal/modules/audit/features/count-by-topic/application"
+	countHandler "microbroker-mqtt-edge/internal/modules/audit/raw/features/count-by-topic/adapters/inbound/http_handler"
+	countDB "microbroker-mqtt-edge/internal/modules/audit/raw/features/count-by-topic/adapters/outbound/database"
+	countApp "microbroker-mqtt-edge/internal/modules/audit/raw/features/count-by-topic/application"
 
-	getHandler "microbroker-mqtt-edge/internal/modules/audit/features/get-by-topic/adapters/inbound/http_handler"
-	getDB "microbroker-mqtt-edge/internal/modules/audit/features/get-by-topic/adapters/outbound/database"
-	getApp "microbroker-mqtt-edge/internal/modules/audit/features/get-by-topic/application"
+	getHandler "microbroker-mqtt-edge/internal/modules/audit/raw/features/get-by-topic/adapters/inbound/http_handler"
+	getDB "microbroker-mqtt-edge/internal/modules/audit/raw/features/get-by-topic/adapters/outbound/database"
+	getApp "microbroker-mqtt-edge/internal/modules/audit/raw/features/get-by-topic/application"
 )
 
 // Servers holds the running TCP and HTTP servers.
