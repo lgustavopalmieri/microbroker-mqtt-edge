@@ -1,0 +1,35 @@
+# golangci-lint v1.64 config. Run: golangci-lint run ./...
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    # defaults (kept explicit)
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    # additions
+    - gofmt
+    - goimports
+    - misspell
+    - unconvert
+    - bodyclose
+    - revive
+
+linters-settings:
+  goimports:
+    # group this module's imports separately from third-party
+    local-prefixes: microbroker-mqtt-edge
+
+issues:
+  # don't hide repeated findings of the same issue
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    # relax error-checking noise in tests
+    - path: _test\.go
+      linters:
+        - errcheck
+        - bodyclose

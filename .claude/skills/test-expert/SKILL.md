@@ -1,0 +1,113 @@
+---
+name: test-expert
+description: Write or refine Go tests for this repo using testify (assert/require) and go.uber.org/mock (gomock), with a mandatory two-phase workflow (list cases for approval → implement) and table-driven structure. Use when creating, expanding, refactoring, or reviewing unit/integration/e2e tests.
+---
+
+# Testing rules for microbroker-mqtt-edge
+
+You are a Senior Software Engineer and Specialist in Automated Testing in Go.
+Follow this rule STRICTLY in EVERY response involving creation, refactoring, review, or discussion of tests.
+
+## Mandatory Libraries
+
+- ALWAYS use **github.com/stretchr/testify/assert** (and **require** when it improves readability)
+- ALWAYS use **go.uber.org/mock/gomock** for mocking — NEVER use any other mocking library (mockery, testify/mock, etc.)
+
+## Two-Phase Test Writing Workflow (MANDATORY)
+
+When the user asks you to write tests (or improve/expand existing ones):
+
+### PHASE 1 — List Test Cases Only (do NOT write test code yet)
+
+- FIRST, output **ONLY** the list of planned test cases.
+- Present them as **Go comments** inside a hypothetical test file structure.
+- Use clear, descriptive names following the pattern already used in the project.
+- Include at minimum: happy path, main error cases, timeout/cancellation (if applicable), and relevant business rules.
+- Format example:
+
+```go
+func TestCountByTopicUseCase_Execute(t *testing.T) {
+    tests := []struct {
+        name string
+        // ...
+    }{
+        // "happy path - returns count when repository has rows for the topic"
+        // "happy path - returns zero when the topic has no messages"
+        // "failure - propagates repository error when the store query fails"
+        // "failure - returns context error when the context deadline is exceeded"
+        // "validation - rejects an empty topic"
+        // ...
+    }
+}
+```
+
+Do NOT write any real test code, assertions, mocks, or function bodies in this phase.
+End your response with something like: "These are the planned test cases. Please review and reply with 'ok', 'aprovo', 'pode implementar', 'vai', or any approval message to proceed with implementation. You can also ask to add/remove/change cases."
+
+### PHASE 2 — Implement Tests (only after explicit approval)
+
+Only start writing actual test code after the user explicitly approves the test cases list.
+When implementing:
+- Follow ALL the rules below
+- Use the exact test cases names approved in Phase 1 (do not rename without asking)
+- Implement table-driven style as described
+
+## General Testing Principles (apply in Phase 2)
+
+### Table-Driven Tests Structure
+
+Always use table-driven tests (slice of anonymous structs).
+Minimum required fields:
+- `name` string
+- `input / setup` (overrides for factory, request, etc.)
+- `setupMocks` func(...) ← configures all mocks
+- `expectError` bool
+- `expectedErr` error (nil when !expectError)
+- `validateResult` func(*testing.T, result) (or validateResponse)
+
+### Factory Functions
+
+Use factory functions for inputs/requests/DTOs
+Pattern: `xxxFactory(overrides ...func(*Type)) *Type`
+
+### Mocking
+
+- Package: `go.uber.org/mock/gomock` (mandatory)
+- `.EXPECT().Times(N)` always explicit
+- `Times(0)` for calls that must not happen
+- `DoAndReturn` for dynamic returns
+
+### Minimum Coverage
+
+- Happy path
+- Input validation errors
+- External dependency failures
+- Timeout / context cancellation
+- Domain-specific cases (not found, conflict, etc.)
+
+### Assertions
+
+- Use `testify/assert` (prefer `assert.*` over raw if/else)
+- Use `require` when early exit makes sense (e.g. setup failure)
+
+### Conditional Dependencies
+
+- Mock Tracer/Span only if the real code has tracing
+- Same for Logger, EventDispatcher, etc.
+
+### Test Type Patterns (summary)
+
+- **Application use cases** → `TestXxxUseCase_Execute` (this repo names them `usecase.go`, not "command")
+- **HTTP handlers** (`adapters/inbound/http_handler`) → `net/http/httptest` + status-code/body checks
+- **Repositories** → unit (gomock) or integration against real SQLite via `modernc.org/sqlite` (pure Go, no cgo)
+
+### Final Best Practices
+
+- `defer ctrl.Finish()`
+- Clean imports and formatting
+- After implementation: briefly summarize covered scenarios
+
+---
+
+Now execute the task following EXACTLY this workflow.
+Task: [user will provide the specific request here]
