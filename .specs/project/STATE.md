@@ -40,7 +40,17 @@
 - Websocket server/transport (port designed in P1; sink impl is P2).
 - goose/atlas migrator move (user memory: `migrations-move-to-goose-atlas`) — independent of this feature.
 
+## Tooling
+
+- **`/ship:feature [feature]`** — standalone runner: ships the **next** actionable task (deps ✅) of a
+  feature; implement → gate → atomic commit → flip ledger ✅ → stop. Defaults to active feature here.
+- **`/ship:task <feature> <Tn>`** — ships a **specific** task by ID (warns on unmet deps); for parallel
+  team pickup of a big spec. Both live in `.claude/commands/ship/`, are standalone (don't load the skill),
+  and maintain the **Progress Ledger** in each feature's `tasks.md`. Pair with `/loop` for autonomous runs.
+
 ## Preferences
 
 - Repo gate before commit: `/verify-go` (build + vet + golangci-lint + `go test -race`). Pure-Go SQLite
   only (`modernc.org/sqlite`, `CGO_ENABLED=0`). Conventional Commits; PRs target `develop`.
+- Per-task commits must be **atomic and tell that task's story** (a large task may split into a few
+  logical commits, each building green).
