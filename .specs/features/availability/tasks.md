@@ -18,7 +18,7 @@ Scaffolding: use `/hexagonal-scaffold` per feature (domain→application(`interf
 | --- | --- | --- | --- |
 | T1 — shared kernel | ✅ | — | ✅ yes |
 | T2 — migration 002 | ✅ | — | ✅ yes |
-| T3 — gorilla dep | ⬜ | — | ✅ yes |
+| T3 — gorilla dep | ✅ | — | ✅ yes |
 | T4 — calculator | ⬜ | T1 | ✅ yes |
 | T5 — config app | ⬜ | T1 | ✅ yes |
 | T6 — ingest app | ⬜ | T4 | — |

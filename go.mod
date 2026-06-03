@@ -3,6 +3,7 @@ module microbroker-mqtt-edge
 go 1.25.0
 
 require (
+	github.com/gorilla/websocket v1.5.3
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/mock v0.6.0
 	modernc.org/sqlite v1.49.1
