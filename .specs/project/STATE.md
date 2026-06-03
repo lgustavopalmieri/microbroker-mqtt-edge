@@ -9,7 +9,8 @@
   - **T1 ✅ done** (`internal/modules/oee/domain/` — MachineState, Shift, Window, Break, PlannedProductionTime, 11 tests).
   - **T2 ✅ done** (`internal/platform/database/migrations/002_create_oee_availability.sql` — shifts, shift_breaks, state_intervals tables + 4 indexes; 9 integration tests).
   - **T3 ✅ done** (`go.mod` + `go.sum` — gorilla/websocket v1.5.3 pinned as direct require).
-  - Next actionable: **T4, T5, T9** (no unmet deps).
+  - **T4 ✅ done** (`internal/modules/oee/availability/domain/` — StateInterval, AvailabilitySnapshot, Aggregate, Availability, 19 tests; §7 oracle verified).
+  - Next actionable: **T5, T6, T7, T8, T9** (T5/T9 no deps; T6/T7/T8 need T4 now ✅).
   - Scope: Complex → full pipeline. WS lib locked: **gorilla/websocket**.
   - Note: harness policy = execute inline (no sub-agent spawning unless user asks).
 
