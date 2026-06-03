@@ -46,6 +46,18 @@ When scaffolding a new module or feature, use `/hexagonal-scaffold` to match thi
 - **Running locally requires** `BROKER_USERNAME`, `BROKER_PASSWORD`, and `BROKER_TOPICS`. Copy `.env.example` → `.env` first.
 - `.kiro/` is **gitignored** (personal steering docs + Kiro skills). The architecture rules above are mirrored here so they stay shared and version-controlled.
 
+## Code style
+
+Rules — Claude must not violate these:
+- **No redundant comments.** Code that is self-explanatory gets no comment. Never restate in prose what the signature and body already say. Counter-example — do *not* write:
+  ```go
+  // PlannedProductionTime returns the total duration within w that falls inside the shift
+  // schedule after subtracting break periods. Returns 0 for an empty or invalid window.
+  func (s Shift) PlannedProductionTime(w Window) time.Duration {
+  ```
+  The name and types already convey this. Comment only **why** (non-obvious intent, trade-offs, edge cases, invariants), and only when the code itself cannot be made clearer. Prefer expressive names and small functions over explanatory comments.
+- **Clean Code & SOLID, always.** Optimize for readability and maintenance: small single-responsibility functions, intention-revealing names, no duplication, dependencies through interfaces (per the hexagonal rules above). When a comment feels needed to explain *what* a block does, extract a well-named function instead.
+
 ## Repo conventions
 
 - Integration branch is `develop`; open PRs against it.
