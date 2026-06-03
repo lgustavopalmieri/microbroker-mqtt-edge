@@ -11,7 +11,8 @@
   - **T3 ✅ done** (`go.mod` + `go.sum` — gorilla/websocket v1.5.3 pinned as direct require).
   - **T4 ✅ done** (`internal/modules/oee/availability/domain/` — StateInterval, AvailabilitySnapshot, Aggregate, Availability, 19 tests; §7 oracle verified).
   - **T5 ✅ done** (`internal/modules/oee/config/application/` — ShiftStore port, Seed use case, LoadShiftsFromJSON loader, mock, 10 tests).
-  - Next actionable: **T6, T7, T8, T9** (T6/T7/T8 need T4 ✅; T9 no deps; T10 needs T2+T5 ✅ now unblocked).
+  - **T6 ✅ done** (`internal/modules/oee/availability/features/ingest-state/application/` — IntervalStore+StateObserver ports, DecodeStateChange, Apply use case, 2 mocks, 13 tests).
+  - Next actionable: **T7, T8, T9** (T7/T8 need T4 ✅; T9 no deps; T11 needs T2+T6 ✅ now unblocked; T12 needs T6 ✅ now unblocked).
   - Scope: Complex → full pipeline. WS lib locked: **gorilla/websocket**.
   - Note: harness policy = execute inline (no sub-agent spawning unless user asks).
 
