@@ -206,8 +206,8 @@ current live snapshot via REST.
 | AVAIL-06 | P1: State ingestion | Design | Pending |
 | AVAIL-07 | P1: State ingestion | Design | Pending |
 | AVAIL-08 | P1: Calculation core | Design | Pending |
-| AVAIL-09 | P1: Calculation core | Design | Pending |
-| AVAIL-10 | P1: Calculation core | Design | Pending |
+| AVAIL-09 | P1: Calculation core | Tasks | Verified |
+| AVAIL-10 | P1: Calculation core | Tasks | Verified |
 | AVAIL-11 | P1: Live accumulator + sink | Design | Pending |
 | AVAIL-12 | P1: Live accumulator + sink | Design | Pending |
 | AVAIL-13 | P1: Live accumulator + sink (port) | Design | Pending |
