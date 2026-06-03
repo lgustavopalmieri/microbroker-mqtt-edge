@@ -16,11 +16,11 @@ Scaffolding: use `/hexagonal-scaffold` per feature (domain→application(`interf
 
 | Task | Status | Depends on | Actionable now? |
 | --- | --- | --- | --- |
-| T1 — shared kernel | ⬜ | — | ✅ yes |
-| T2 — migration 002 | ⬜ | — | ✅ yes |
+| T1 — shared kernel | ✅ | — | ✅ yes |
+| T2 — migration 002 | ✅ | — | ✅ yes |
 | T3 — gorilla dep | ⬜ | — | ✅ yes |
-| T4 — calculator | ⬜ | T1 | — |
-| T5 — config app | ⬜ | T1 | — |
+| T4 — calculator | ⬜ | T1 | ✅ yes |
+| T5 — config app | ⬜ | T1 | ✅ yes |
 | T6 — ingest app | ⬜ | T4 | — |
 | T7 — live engine | ⬜ | T4 | — |
 | T8 — query app | ⬜ | T4 | — |
@@ -35,7 +35,7 @@ Scaffolding: use `/hexagonal-scaffold` per feature (domain→application(`interf
 | T18 — wiring + e2e | ⬜ | T9,T10,T11,T12,T13,T14,T16,T17 | — |
 | T19 — docs | ⬜ | T18 | — |
 
-**Next up:** T1, T2, T3, or T9 (no unmet deps).
+**Next up:** T2, T3, T4, T5, or T9 (no unmet deps).
 
 ---
 

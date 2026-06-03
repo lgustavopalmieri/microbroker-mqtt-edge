@@ -198,16 +198,16 @@ current live snapshot via REST.
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| AVAIL-01 | P1: Shift config | Design | Pending |
+| AVAIL-01 | P1: Shift config | Tasks | Implementing |
 | AVAIL-02 | P1: Shift config | Design | Pending |
 | AVAIL-03 | P1: Shift config | Design | Pending |
 | AVAIL-04 | P1: State ingestion | Design | Pending |
 | AVAIL-05 | P1: State ingestion | Design | Pending |
 | AVAIL-06 | P1: State ingestion | Design | Pending |
-| AVAIL-07 | P1: State ingestion | Design | Pending |
+| AVAIL-07 | P1: State ingestion | Tasks | Implementing |
 | AVAIL-08 | P1: Calculation core | Design | Pending |
-| AVAIL-09 | P1: Calculation core | Design | Pending |
-| AVAIL-10 | P1: Calculation core | Design | Pending |
+| AVAIL-09 | P1: Calculation core | Tasks | Verified |
+| AVAIL-10 | P1: Calculation core | Tasks | Verified |
 | AVAIL-11 | P1: Live accumulator + sink | Design | Pending |
 | AVAIL-12 | P1: Live accumulator + sink | Design | Pending |
 | AVAIL-13 | P1: Live accumulator + sink (port) | Design | Pending |

@@ -54,6 +54,35 @@ When implementing:
 
 ## General Testing Principles (apply in Phase 2)
 
+### Test File Layout — one `_test.go` per source file (MANDATORY)
+
+- Every source file that has tests MUST have its own sibling test file named after it:
+  `machine_state.go` → `machine_state_test.go`, `shift.go` → `shift_test.go`.
+- NEVER write a single catch-all test file for a whole package (no `domain_test.go`,
+  `service_test.go`, etc. that mixes the tests of several source files).
+- A test belongs in the test file that mirrors the source file declaring the type/function
+  under test. If a shared helper is used by only one test file, keep it there; if it is used
+  by several, put it in a small dedicated `helpers_test.go` (or `export_test.go`) — not in
+  one of the feature test files.
+- The `_test.go` package follows the existing convention (`<pkg>_test` black-box by default).
+
+### Migration Tests — replay the real prod path (MANDATORY)
+
+When testing a database migration (`NNN_*.sql`), the test MUST reproduce how migrations run
+in production, not just the file in isolation:
+
+- Build a fresh DB (`:memory:` or a temp file) and apply **all migrations in order up to and
+  including the one under test** — using the real `database.Migrator.Run` so prior migrations
+  (`001…N-1`) establish the exact schema state the new one lands on top of.
+- Assert the resulting schema (tables, columns, indexes, constraints, defaults) via `PRAGMA`.
+- Assert idempotency: a second `Run` is a no-op and the migration is recorded exactly once in
+  `schema_migrations`.
+- For **data** migrations (not pure DDL): apply prior migrations, **seed representative rows**
+  reflecting the pre-migration state, run the migration under test, then assert the data was
+  transformed correctly. The seed-between-steps is the whole point — it is what catches
+  migrations that break on real existing data.
+- Keep migration tests pure-Go SQLite (`modernc.org/sqlite`, `CGO_ENABLED=0`) — never cgo.
+
 ### Table-Driven Tests Structure
 
 Always use table-driven tests (slice of anonymous structs).

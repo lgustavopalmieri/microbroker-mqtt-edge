@@ -6,7 +6,9 @@
 
 - **Feature: Availability (Disponibilidade)** — `.specs/features/availability/`
   - Phase: **Specify ✅ · Design ✅ · Tasks ✅** (spec.md, context.md, design.md, tasks.md, TESTING.md).
-  - Next: **Execute** — 19 atomic tasks (T1..T19), 4 phases. Start at Phase 1 (T1 kernel, T2 migration, T3 go.mod).
+  - **T1 ✅ done** (`internal/modules/oee/domain/` — MachineState, Shift, Window, Break, PlannedProductionTime, 11 tests).
+  - **T2 ✅ done** (`internal/platform/database/migrations/002_create_oee_availability.sql` — shifts, shift_breaks, state_intervals tables + 4 indexes; 9 integration tests).
+  - Next actionable: **T3, T4, T5, T9** (no unmet deps).
   - Scope: Complex → full pipeline. WS lib locked: **gorilla/websocket**.
   - Note: harness policy = execute inline (no sub-agent spawning unless user asks).
 
