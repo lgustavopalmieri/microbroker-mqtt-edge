@@ -22,7 +22,7 @@ Scaffolding: use `/hexagonal-scaffold` per feature (domain→application(`interf
 | T4 — calculator | ✅ | T1 | ✅ yes |
 | T5 — config app | ✅ | T1 | ✅ yes |
 | T6 — ingest app | ✅ | T4 | ✅ yes |
-| T7 — live engine | ⬜ | T4 | — |
+| T7 — live engine | ✅ | T4 | ✅ yes |
 | T8 — query app | ⬜ | T4 | — |
 | T9 — env vars | ⬜ | — | ✅ yes |
 | T10 — shift repo | ⬜ | T2, T5 | — |

@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	avdomain "microbroker-mqtt-edge/internal/modules/oee/availability/domain"
 	"microbroker-mqtt-edge/internal/modules/oee/availability/features/ingest-state/application"
 	ooedomain "microbroker-mqtt-edge/internal/modules/oee/domain"
 )
@@ -18,7 +19,7 @@ func TestDecodeStateChange(t *testing.T) {
 		name        string
 		payload     []byte
 		expectError bool
-		validate    func(t *testing.T, tr application.StateTransition)
+		validate    func(t *testing.T, tr avdomain.StateTransition)
 	}{
 		{
 			name: "happy path - valid payload decodes all fields into StateTransition",
@@ -30,7 +31,7 @@ func TestDecodeStateChange(t *testing.T) {
 				"reason": "breakdown",
 				"timestamp": "2024-01-15T09:00:00Z"
 			}`),
-			validate: func(t *testing.T, tr application.StateTransition) {
+			validate: func(t *testing.T, tr avdomain.StateTransition) {
 				assert.Equal(t, "CNC-01", tr.MachineID)
 				assert.Equal(t, ooedomain.Stopped, tr.State)
 				assert.Equal(t, ooedomain.Running, tr.PreviousState)
@@ -48,7 +49,7 @@ func TestDecodeStateChange(t *testing.T) {
 				"reason": "changeover",
 				"timestamp": "2024-01-15T09:00:00Z"
 			}`),
-			validate: func(t *testing.T, tr application.StateTransition) {
+			validate: func(t *testing.T, tr avdomain.StateTransition) {
 				assert.Equal(t, ooedomain.MachineState("running"), tr.PreviousState)
 				assert.Equal(t, "changeover", tr.Reason)
 			},

@@ -5,17 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	avdomain "microbroker-mqtt-edge/internal/modules/oee/availability/domain"
 	ooedomain "microbroker-mqtt-edge/internal/modules/oee/domain"
 )
-
-// StateTransition is the validated input to the Apply use case.
-type StateTransition struct {
-	MachineID     string
-	State         ooedomain.MachineState
-	PreviousState ooedomain.MachineState
-	Reason        string
-	Timestamp     time.Time
-}
 
 type stateChangeJSON struct {
 	Type          string    `json:"type"`
@@ -27,22 +19,22 @@ type stateChangeJSON struct {
 }
 
 // DecodeStateChange parses and validates a state_change JSON payload.
-func DecodeStateChange(payload []byte) (StateTransition, error) {
+func DecodeStateChange(payload []byte) (avdomain.StateTransition, error) {
 	var raw stateChangeJSON
 	if err := json.Unmarshal(payload, &raw); err != nil {
-		return StateTransition{}, fmt.Errorf("ingest-state: invalid JSON: %w", err)
+		return avdomain.StateTransition{}, fmt.Errorf("ingest-state: invalid JSON: %w", err)
 	}
 	if raw.MachineID == "" {
-		return StateTransition{}, fmt.Errorf("ingest-state: missing machine_id")
+		return avdomain.StateTransition{}, fmt.Errorf("ingest-state: missing machine_id")
 	}
 	state := ooedomain.MachineState(raw.State)
 	if !state.Valid() {
-		return StateTransition{}, fmt.Errorf("ingest-state: unknown state %q", raw.State)
+		return avdomain.StateTransition{}, fmt.Errorf("ingest-state: unknown state %q", raw.State)
 	}
 	if raw.Timestamp.IsZero() {
-		return StateTransition{}, fmt.Errorf("ingest-state: missing timestamp")
+		return avdomain.StateTransition{}, fmt.Errorf("ingest-state: missing timestamp")
 	}
-	return StateTransition{
+	return avdomain.StateTransition{
 		MachineID:     raw.MachineID,
 		State:         state,
 		PreviousState: ooedomain.MachineState(raw.PreviousState),

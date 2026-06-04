@@ -17,9 +17,11 @@ import (
 )
 
 var (
-	t0           = time.Date(2024, 1, 15, 8, 0, 0, 0, time.UTC)
-	t1           = t0.Add(time.Hour)
-	storeErr     = errors.New("store: write failed")
+	t0 = time.Date(2024, 1, 15, 8, 0, 0, 0, time.UTC)
+	t1 = t0.Add(time.Hour)
+
+	storeErr = errors.New("store: write failed")
+
 	openInterval = avdomain.StateInterval{
 		MachineID: "CNC-01",
 		State:     ooedomain.Running,
@@ -27,8 +29,8 @@ var (
 	}
 )
 
-func transitionFactory(overrides ...func(*application.StateTransition)) application.StateTransition {
-	tr := application.StateTransition{
+func transitionFactory(overrides ...func(*avdomain.StateTransition)) avdomain.StateTransition {
+	tr := avdomain.StateTransition{
 		MachineID: "CNC-01",
 		State:     ooedomain.Stopped,
 		Timestamp: t1,
@@ -42,7 +44,7 @@ func transitionFactory(overrides ...func(*application.StateTransition)) applicat
 func TestIngestStateUseCase_Apply(t *testing.T) {
 	tests := []struct {
 		name        string
-		transition  application.StateTransition
+		transition  avdomain.StateTransition
 		setupMocks  func(store *mocks.MockIntervalStore, obs *mocks.MockStateObserver)
 		expectError bool
 	}{
@@ -68,8 +70,8 @@ func TestIngestStateUseCase_Apply(t *testing.T) {
 		},
 		{
 			name: "business rule - no-op transition (same state as open) is ignored: no store writes, observer not called",
-			transition: transitionFactory(func(tr *application.StateTransition) {
-				tr.State = ooedomain.Running // same as openInterval.State
+			transition: transitionFactory(func(tr *avdomain.StateTransition) {
+				tr.State = ooedomain.Running
 			}),
 			setupMocks: func(store *mocks.MockIntervalStore, obs *mocks.MockStateObserver) {
 				store.EXPECT().LastOpen(gomock.Any(), "CNC-01").Return(openInterval, true, nil).Times(1)
@@ -80,8 +82,8 @@ func TestIngestStateUseCase_Apply(t *testing.T) {
 		},
 		{
 			name: "business rule - non-increasing timestamp is ignored: no store writes, observer not called",
-			transition: transitionFactory(func(tr *application.StateTransition) {
-				tr.Timestamp = t0 // equal to openInterval.StartedAt, not after
+			transition: transitionFactory(func(tr *avdomain.StateTransition) {
+				tr.Timestamp = t0
 			}),
 			setupMocks: func(store *mocks.MockIntervalStore, obs *mocks.MockStateObserver) {
 				store.EXPECT().LastOpen(gomock.Any(), "CNC-01").Return(openInterval, true, nil).Times(1)

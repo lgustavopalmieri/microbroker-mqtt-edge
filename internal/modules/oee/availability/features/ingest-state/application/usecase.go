@@ -1,10 +1,14 @@
 package application
 
-import "context"
+import (
+	"context"
+
+	avdomain "microbroker-mqtt-edge/internal/modules/oee/availability/domain"
+)
 
 // Apply persists a state transition as a closed+opened interval pair and notifies the observer.
 // No-op transitions and non-increasing timestamps are silently ignored.
-func (uc *UseCase) Apply(ctx context.Context, t StateTransition) error {
+func (uc *UseCase) Apply(ctx context.Context, t avdomain.StateTransition) error {
 	last, hasOpen, err := uc.store.LastOpen(ctx, t.MachineID)
 	if err != nil {
 		uc.logger.Error("ingest-state: failed to read last open interval", "machine_id", t.MachineID, "error", err)

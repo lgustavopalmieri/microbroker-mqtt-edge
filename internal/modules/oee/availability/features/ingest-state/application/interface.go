@@ -18,7 +18,7 @@ type IntervalStore interface {
 
 // StateObserver is notified after a valid state transition is persisted.
 type StateObserver interface {
-	Apply(t StateTransition)
+	Apply(t avdomain.StateTransition)
 }
 
 // Logger is the observability contract used by this use case.

@@ -10,7 +10,7 @@
 package mocks
 
 import (
-	application "microbroker-mqtt-edge/internal/modules/oee/availability/features/ingest-state/application"
+	domain "microbroker-mqtt-edge/internal/modules/oee/availability/domain"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -41,7 +41,7 @@ func (m *MockStateObserver) EXPECT() *MockStateObserverMockRecorder {
 }
 
 // Apply mocks base method.
-func (m *MockStateObserver) Apply(t application.StateTransition) {
+func (m *MockStateObserver) Apply(t domain.StateTransition) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "Apply", t)
 }
