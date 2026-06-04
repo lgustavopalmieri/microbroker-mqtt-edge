@@ -23,7 +23,8 @@
   - **T16 ✅ done** (`query/adapters/outbound/database/` — IntervalRepository.ByMachineRange; overlap query with open-interval support; ASC ordering; 5 integration tests).
   - **T17 ✅ done** (`query/adapters/inbound/http_handler/` — GET /availability/{machine}?from&to; validates params, delegates to UseCase, renders JSON; 6 table-driven unit tests).
   - **T18 ✅ done** (`cmd/broker/bootstrap/` — buildOEEModules, route registration, engine start, CompositeSink close; `tests/e2e/oee_e2e_test.go` — 3 e2e tests; full gate green).
-  - Next actionable: **T19** (docs).
+  - **T19 ✅ done** (README — OEE arch diagram, state_change payload, /availability REST + WS docs, env vars table; .env.example — topics by data type with machine/state slot).
+  - **Feature COMPLETE — all 18 tasks ✅.**
   - Scope: Complex → full pipeline. WS lib locked: **gorilla/websocket**.
   - Note: harness policy = execute inline (no sub-agent spawning unless user asks).
 
