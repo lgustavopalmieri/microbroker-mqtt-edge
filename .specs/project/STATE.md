@@ -18,7 +18,8 @@
   - **T10 ✅ done** (`internal/modules/oee/config/adapters/outbound/database/` — ShiftRepository; Upsert keyed on (machine_id, name), ForMachineWindow with wildcard fallback + summed planned time; 7 integration tests).
   - **T11 ✅ done** (`internal/modules/oee/availability/features/ingest-state/adapters/outbound/database/` — IntervalRepository; OpenInterval/CloseOpen/LastOpen; is_downtime/is_planned_stop derived from MachineState; 9 integration tests).
   - **T12 ✅ done** (`ingest-state/adapters/inbound/worker/` — StateChangeWorker; self-filters on state topic, skips malformed payloads, delegates to StateIngester; MockStateIngester generated; 6 unit tests).
-  - Next actionable: **T13, T14, T16, T17** (all deps ✅).
+  - **T13 ✅ done** (`live/adapters/outbound/sink/{composite,logsink}/` — CompositeSink buffered-channel fan-out, context-cancel lifecycle; LogSink sync.Map latest-per-machine; 7 race-clean unit tests).
+  - Next actionable: **T14, T16, T17** (all deps ✅).
   - Scope: Complex → full pipeline. WS lib locked: **gorilla/websocket**.
   - Note: harness policy = execute inline (no sub-agent spawning unless user asks).
 
