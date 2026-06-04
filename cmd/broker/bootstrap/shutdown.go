@@ -15,5 +15,9 @@ func GracefulShutdown(modules *Modules, servers *Servers, logger observability.L
 	modules.FanOut.Close()
 	modules.ClientMgr.CloseAll()
 
+	if modules.OEECompositeSink != nil {
+		_ = modules.OEECompositeSink.Close()
+	}
+
 	logger.Info("shutdown complete")
 }

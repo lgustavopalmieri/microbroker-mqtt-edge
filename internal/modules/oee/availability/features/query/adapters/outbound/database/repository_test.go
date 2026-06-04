@@ -38,8 +38,8 @@ func seedInterval(t *testing.T, db *sql.DB, machineID, state string, startedAt t
 	}
 }
 
-func ts(hour, min int) time.Time {
-	return time.Date(2026, 6, 1, hour, min, 0, 0, time.UTC)
+func ts(hour, minute int) time.Time {
+	return time.Date(2026, 6, 1, hour, minute, 0, 0, time.UTC)
 }
 
 func ptr(t time.Time) *time.Time { return &t }

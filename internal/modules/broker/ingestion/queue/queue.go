@@ -6,8 +6,6 @@ import (
 	"microbroker-mqtt-edge/internal/common/message"
 )
 
-
-
 // Enqueue adds a message to the queue. Blocks if the buffer is full (backpressure).
 func (q *Queue) Enqueue(msg message.Message) {
 	q.messages <- msg

@@ -6,8 +6,6 @@ import (
 	"microbroker-mqtt-edge/internal/common/message"
 )
 
-
-
 // Start launches all queue consumers and begins routing messages from inputChan
 // to the appropriate topic queue. Blocks until context is cancelled or inputChan is closed.
 func (p *Pipeline) Start(ctx context.Context, inputChan <-chan message.Message) {
