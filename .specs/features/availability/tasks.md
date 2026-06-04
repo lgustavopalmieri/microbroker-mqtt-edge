@@ -27,7 +27,7 @@ Scaffolding: use `/hexagonal-scaffold` per feature (domain→application(`interf
 | T9 — env vars | ✅ | — | ✅ yes |
 | T10 — shift repo | ✅ | T2, T5 | — |
 | T11 — interval repo | ✅ | T2, T6 | — |
-| T12 — worker | ⬜ | T6 | — |
+| T12 — worker | ✅ | T6 | — |
 | T13 — log/composite sinks | ⬜ | T7 | — |
 | T14 — websocket sink+endpoint | ⬜ | T3, T7 | — |
 | T16 — query repo | ⬜ | T2, T8 | — |
