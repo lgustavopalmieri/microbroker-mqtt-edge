@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Config holds all broker configuration loaded from environment variables.
@@ -20,6 +21,12 @@ type Config struct {
 	QueueBufferSize int
 	DBPath          string
 	Timezone        string
+
+	OEEEnabled      bool
+	OEEStateTopic   string
+	OEETickInterval time.Duration
+	OEEWSEnabled    bool
+	OEEShiftsPath   string
 }
 
 // Defaults
@@ -31,14 +38,17 @@ const (
 	defaultQueueBufferSize = 10000
 	defaultDBPath          = "./data/broker.db"
 	defaultTimezone        = "UTC"
+	defaultOEEStateTopic   = "machine/state"
+	defaultOEETickInterval = time.Second
 )
 
 // Validation errors
 var (
-	ErrTopicsEmpty     = errors.New("config: BROKER_TOPICS must not be empty")
-	ErrMaxClientsRange = errors.New("config: BROKER_MAX_CLIENTS must be between 1 and 5")
-	ErrUsernameEmpty   = errors.New("config: BROKER_USERNAME must not be empty")
-	ErrPasswordEmpty   = errors.New("config: BROKER_PASSWORD must not be empty")
+	ErrTopicsEmpty              = errors.New("config: BROKER_TOPICS must not be empty")
+	ErrMaxClientsRange          = errors.New("config: BROKER_MAX_CLIENTS must be between 1 and 5")
+	ErrUsernameEmpty            = errors.New("config: BROKER_USERNAME must not be empty")
+	ErrPasswordEmpty            = errors.New("config: BROKER_PASSWORD must not be empty")
+	ErrOEEStateTopicNotInTopics = errors.New("config: BROKER_OEE_STATE_TOPIC must be included in BROKER_TOPICS when OEE is enabled")
 )
 
 // Address returns the "host:port" string for the TCP listener.
@@ -64,6 +74,11 @@ func Load() (*Config, error) {
 		QueueBufferSize: envIntOrDefault("BROKER_QUEUE_BUFFER_SIZE", defaultQueueBufferSize),
 		DBPath:          envOrDefault("BROKER_DB_PATH", defaultDBPath),
 		Timezone:        envOrDefault("BROKER_TIMEZONE", defaultTimezone),
+		OEEEnabled:      envBoolOrDefault("BROKER_OEE_ENABLED", false),
+		OEEStateTopic:   envOrDefault("BROKER_OEE_STATE_TOPIC", defaultOEEStateTopic),
+		OEETickInterval: envDurationOrDefault("BROKER_OEE_TICK_INTERVAL", defaultOEETickInterval),
+		OEEWSEnabled:    envBoolOrDefault("BROKER_OEE_WS_ENABLED", true),
+		OEEShiftsPath:   strings.TrimSpace(os.Getenv("BROKER_OEE_SHIFTS_PATH")),
 	}
 
 	// Parse topics: split by comma, trim each, ignore empty
@@ -89,7 +104,21 @@ func (c *Config) validate() error {
 	if c.Password == "" {
 		return ErrPasswordEmpty
 	}
+	if c.OEEEnabled {
+		if !containsTopic(c.Topics, c.OEEStateTopic) {
+			return ErrOEEStateTopicNotInTopics
+		}
+	}
 	return nil
+}
+
+func containsTopic(topics []string, target string) bool {
+	for _, t := range topics {
+		if t == target {
+			return true
+		}
+	}
+	return false
 }
 
 func parseTopics(raw string) []string {
@@ -122,4 +151,28 @@ func envIntOrDefault(key string, fallback int) int {
 		return fallback
 	}
 	return n
+}
+
+func envBoolOrDefault(key string, fallback bool) bool {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return fallback
+	}
+	return b
+}
+
+func envDurationOrDefault(key string, fallback time.Duration) time.Duration {
+	v := strings.TrimSpace(os.Getenv(key))
+	if v == "" {
+		return fallback
+	}
+	d, err := time.ParseDuration(v)
+	if err != nil {
+		return fallback
+	}
+	return d
 }

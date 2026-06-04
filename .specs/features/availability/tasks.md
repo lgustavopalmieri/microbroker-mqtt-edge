@@ -18,22 +18,22 @@ Scaffolding: use `/hexagonal-scaffold` per feature (domain→application(`interf
 | --- | --- | --- | --- |
 | T1 — shared kernel | ✅ | — | ✅ yes |
 | T2 — migration 002 | ✅ | — | ✅ yes |
-| T3 — gorilla dep | ⬜ | — | ✅ yes |
-| T4 — calculator | ⬜ | T1 | ✅ yes |
-| T5 — config app | ⬜ | T1 | ✅ yes |
-| T6 — ingest app | ⬜ | T4 | — |
-| T7 — live engine | ⬜ | T4 | — |
-| T8 — query app | ⬜ | T4 | — |
-| T9 — env vars | ⬜ | — | ✅ yes |
-| T10 — shift repo | ⬜ | T2, T5 | — |
-| T11 — interval repo | ⬜ | T2, T6 | — |
-| T12 — worker | ⬜ | T6 | — |
-| T13 — log/composite sinks | ⬜ | T7 | — |
-| T14 — websocket sink+endpoint | ⬜ | T3, T7 | — |
-| T16 — query repo | ⬜ | T2, T8 | — |
-| T17 — query handler | ⬜ | T8 | — |
-| T18 — wiring + e2e | ⬜ | T9,T10,T11,T12,T13,T14,T16,T17 | — |
-| T19 — docs | ⬜ | T18 | — |
+| T3 — gorilla dep | ✅ | — | ✅ yes |
+| T4 — calculator | ✅ | T1 | ✅ yes |
+| T5 — config app | ✅ | T1 | ✅ yes |
+| T6 — ingest app | ✅ | T4 | ✅ yes |
+| T7 — live engine | ✅ | T4 | ✅ yes |
+| T8 — query app | ✅ | T4 | ✅ yes |
+| T9 — env vars | ✅ | — | ✅ yes |
+| T10 — shift repo | ✅ | T2, T5 | — |
+| T11 — interval repo | ✅ | T2, T6 | — |
+| T12 — worker | ✅ | T6 | — |
+| T13 — log/composite sinks | ✅ | T7 | — |
+| T14 — websocket sink+endpoint | ✅ | T3, T7 | — |
+| T16 — query repo | ✅ | T2, T8 | — |
+| T17 — query handler | ✅ | T8 | — |
+| T18 — wiring + e2e | ✅ | T9,T10,T11,T12,T13,T14,T16,T17 | — |
+| T19 — docs | ✅ | T18 | — |
 
 **Next up:** T2, T3, T4, T5, or T9 (no unmet deps).
 

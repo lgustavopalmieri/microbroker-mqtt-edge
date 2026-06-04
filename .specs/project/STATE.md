@@ -8,7 +8,23 @@
   - Phase: **Specify ✅ · Design ✅ · Tasks ✅** (spec.md, context.md, design.md, tasks.md, TESTING.md).
   - **T1 ✅ done** (`internal/modules/oee/domain/` — MachineState, Shift, Window, Break, PlannedProductionTime, 11 tests).
   - **T2 ✅ done** (`internal/platform/database/migrations/002_create_oee_availability.sql` — shifts, shift_breaks, state_intervals tables + 4 indexes; 9 integration tests).
-  - Next actionable: **T3, T4, T5, T9** (no unmet deps).
+  - **T3 ✅ done** (`go.mod` + `go.sum` — gorilla/websocket v1.5.3 pinned as direct require).
+  - **T4 ✅ done** (`internal/modules/oee/availability/domain/` — StateInterval, AvailabilitySnapshot, Aggregate, Availability, 19 tests; §7 oracle verified).
+  - **T5 ✅ done** (`internal/modules/oee/config/application/` — ShiftStore port, Seed use case, LoadShiftsFromJSON loader, mock, 10 tests).
+  - **T6 ✅ done** (`internal/modules/oee/availability/features/ingest-state/application/` — IntervalStore+StateObserver ports, DecodeStateChange, Apply use case, 2 mocks, 13 tests).
+  - **T7 ✅ done** (`internal/modules/oee/availability/features/live/application/` — AvailabilitySink+ShiftReader+StateIntervalReader ports, Engine with mutex-protected map, Apply+Start+rehydrate+tick, 3 mocks, 8 race-clean tests). StateTransition moved to avdomain.
+  - **T8 ✅ done** (`internal/modules/oee/availability/features/query/application/` — IntervalReader+ShiftReader ports, Execute use case, 3 flags, 2 mocks, 7 tests; §7 oracle end-to-end).
+  - **T9 ✅ done** (`cmd/broker/config/` — OEEEnabled, OEEStateTopic, OEETickInterval, OEEWSEnabled, OEEShiftsPath fields + ErrOEEStateTopicNotInTopics validation; 8 new tests).
+  - **T10 ✅ done** (`internal/modules/oee/config/adapters/outbound/database/` — ShiftRepository; Upsert keyed on (machine_id, name), ForMachineWindow with wildcard fallback + summed planned time; 7 integration tests).
+  - **T11 ✅ done** (`internal/modules/oee/availability/features/ingest-state/adapters/outbound/database/` — IntervalRepository; OpenInterval/CloseOpen/LastOpen; is_downtime/is_planned_stop derived from MachineState; 9 integration tests).
+  - **T12 ✅ done** (`ingest-state/adapters/inbound/worker/` — StateChangeWorker; self-filters on state topic, skips malformed payloads, delegates to StateIngester; MockStateIngester generated; 6 unit tests).
+  - **T13 ✅ done** (`live/adapters/outbound/sink/{composite,logsink}/` — CompositeSink buffered-channel fan-out, context-cancel lifecycle; LogSink sync.Map latest-per-machine; 7 race-clean unit tests).
+  - **T14 ✅ done** (`live/adapters/outbound/sink/websocket/` + `live/adapters/inbound/http_handler/` — Hub mutex+write-deadline pattern; WebsocketSink; WS upgrade handler with read-loop unregister; 5 race-clean tests via httptest+gorilla dialer).
+  - **T16 ✅ done** (`query/adapters/outbound/database/` — IntervalRepository.ByMachineRange; overlap query with open-interval support; ASC ordering; 5 integration tests).
+  - **T17 ✅ done** (`query/adapters/inbound/http_handler/` — GET /availability/{machine}?from&to; validates params, delegates to UseCase, renders JSON; 6 table-driven unit tests).
+  - **T18 ✅ done** (`cmd/broker/bootstrap/` — buildOEEModules, route registration, engine start, CompositeSink close; `tests/e2e/oee_e2e_test.go` — 3 e2e tests; full gate green).
+  - **T19 ✅ done** (README — OEE arch diagram, state_change payload, /availability REST + WS docs, env vars table; .env.example — topics by data type with machine/state slot).
+  - **Feature COMPLETE — all 18 tasks ✅.**
   - Scope: Complex → full pipeline. WS lib locked: **gorilla/websocket**.
   - Note: harness policy = execute inline (no sub-agent spawning unless user asks).
 

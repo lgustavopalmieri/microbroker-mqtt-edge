@@ -54,6 +54,17 @@ func StartServers(ctx context.Context, cancel context.CancelFunc, cfg *config.Co
 	countH := countHandler.NewHandler(countUC)
 	countH.RegisterRoutes(mux)
 
+	// OEE availability features (registered only when OEE is enabled)
+	if modules.OEEQueryHandler != nil {
+		modules.OEEQueryHandler.RegisterRoutes(mux)
+	}
+	if modules.OEEWSHandler != nil {
+		modules.OEEWSHandler.RegisterRoutes(mux)
+	}
+	if modules.OEEEngine != nil {
+		go modules.OEEEngine.Start(ctx, nil)
+	}
+
 	httpServer := &http.Server{Addr: cfg.HTTPAddress(), Handler: mux}
 	go func() {
 		logger.Info("audit API started", "address", cfg.HTTPAddress())

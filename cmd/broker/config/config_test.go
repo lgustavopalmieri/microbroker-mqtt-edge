@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -168,4 +169,109 @@ func TestLoad_InvalidPortFallsBackToDefault(t *testing.T) {
 	cfg, err := Load()
 	require.NoError(t, err)
 	assert.Equal(t, defaultPort, cfg.Port)
+}
+
+func TestLoad_OEEDefaultsApplied(t *testing.T) {
+	setEnv(t, map[string]string{
+		"BROKER_USERNAME": "admin",
+		"BROKER_PASSWORD": "secret",
+		"BROKER_TOPICS":   "t/1",
+	})
+
+	cfg, err := Load()
+	require.NoError(t, err)
+
+	assert.False(t, cfg.OEEEnabled)
+	assert.Equal(t, defaultOEEStateTopic, cfg.OEEStateTopic)
+	assert.Equal(t, defaultOEETickInterval, cfg.OEETickInterval)
+	assert.True(t, cfg.OEEWSEnabled)
+	assert.Equal(t, "", cfg.OEEShiftsPath)
+}
+
+func TestLoad_OEETickIntervalParsesDuration(t *testing.T) {
+	cases := []struct {
+		raw      string
+		expected time.Duration
+	}{
+		{"5s", 5 * time.Second},
+		{"500ms", 500 * time.Millisecond},
+	}
+	for _, tc := range cases {
+		t.Run(tc.raw, func(t *testing.T) {
+			setEnv(t, map[string]string{
+				"BROKER_USERNAME":          "admin",
+				"BROKER_PASSWORD":          "secret",
+				"BROKER_TOPICS":            "t/1",
+				"BROKER_OEE_TICK_INTERVAL": tc.raw,
+			})
+			cfg, err := Load()
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, cfg.OEETickInterval)
+		})
+	}
+}
+
+func TestLoad_OEETickIntervalInvalidFallsBackToDefault(t *testing.T) {
+	setEnv(t, map[string]string{
+		"BROKER_USERNAME":          "admin",
+		"BROKER_PASSWORD":          "secret",
+		"BROKER_TOPICS":            "t/1",
+		"BROKER_OEE_TICK_INTERVAL": "not-a-duration",
+	})
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	assert.Equal(t, defaultOEETickInterval, cfg.OEETickInterval)
+}
+
+func TestLoad_OEEEnabledWithStateTopicInTopics(t *testing.T) {
+	setEnv(t, map[string]string{
+		"BROKER_USERNAME":        "admin",
+		"BROKER_PASSWORD":        "secret",
+		"BROKER_TOPICS":          "t/1,machine/state",
+		"BROKER_OEE_ENABLED":     "true",
+		"BROKER_OEE_STATE_TOPIC": "machine/state",
+	})
+
+	_, err := Load()
+	assert.NoError(t, err)
+}
+
+func TestLoad_OEEEnabledWithStateTopicNotInTopics(t *testing.T) {
+	setEnv(t, map[string]string{
+		"BROKER_USERNAME":        "admin",
+		"BROKER_PASSWORD":        "secret",
+		"BROKER_TOPICS":          "t/1,t/2",
+		"BROKER_OEE_ENABLED":     "true",
+		"BROKER_OEE_STATE_TOPIC": "machine/state",
+	})
+
+	_, err := Load()
+	assert.ErrorIs(t, err, ErrOEEStateTopicNotInTopics)
+}
+
+func TestLoad_OEEDisabledSkipsStateTopicValidation(t *testing.T) {
+	setEnv(t, map[string]string{
+		"BROKER_USERNAME":        "admin",
+		"BROKER_PASSWORD":        "secret",
+		"BROKER_TOPICS":          "t/1",
+		"BROKER_OEE_ENABLED":     "false",
+		"BROKER_OEE_STATE_TOPIC": "machine/state",
+	})
+
+	_, err := Load()
+	assert.NoError(t, err)
+}
+
+func TestLoad_OEEWSEnabledExplicitFalse(t *testing.T) {
+	setEnv(t, map[string]string{
+		"BROKER_USERNAME":       "admin",
+		"BROKER_PASSWORD":       "secret",
+		"BROKER_TOPICS":         "t/1",
+		"BROKER_OEE_WS_ENABLED": "false",
+	})
+
+	cfg, err := Load()
+	require.NoError(t, err)
+	assert.False(t, cfg.OEEWSEnabled)
 }
