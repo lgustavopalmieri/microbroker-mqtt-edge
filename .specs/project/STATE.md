@@ -15,7 +15,8 @@
   - **T7 ✅ done** (`internal/modules/oee/availability/features/live/application/` — AvailabilitySink+ShiftReader+StateIntervalReader ports, Engine with mutex-protected map, Apply+Start+rehydrate+tick, 3 mocks, 8 race-clean tests). StateTransition moved to avdomain.
   - **T8 ✅ done** (`internal/modules/oee/availability/features/query/application/` — IntervalReader+ShiftReader ports, Execute use case, 3 flags, 2 mocks, 7 tests; §7 oracle end-to-end).
   - **T9 ✅ done** (`cmd/broker/config/` — OEEEnabled, OEEStateTopic, OEETickInterval, OEEWSEnabled, OEEShiftsPath fields + ErrOEEStateTopicNotInTopics validation; 8 new tests).
-  - Next actionable: **T10, T11, T12, T13, T14, T16, T17** (all deps now ✅).
+  - **T10 ✅ done** (`internal/modules/oee/config/adapters/outbound/database/` — ShiftRepository; Upsert keyed on (machine_id, name), ForMachineWindow with wildcard fallback + summed planned time; 7 integration tests).
+  - Next actionable: **T11, T12, T13, T14, T16, T17** (all deps ✅).
   - Scope: Complex → full pipeline. WS lib locked: **gorilla/websocket**.
   - Note: harness policy = execute inline (no sub-agent spawning unless user asks).
 
