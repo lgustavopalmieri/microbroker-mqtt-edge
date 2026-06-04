@@ -21,7 +21,8 @@
   - **T13 ✅ done** (`live/adapters/outbound/sink/{composite,logsink}/` — CompositeSink buffered-channel fan-out, context-cancel lifecycle; LogSink sync.Map latest-per-machine; 7 race-clean unit tests).
   - **T14 ✅ done** (`live/adapters/outbound/sink/websocket/` + `live/adapters/inbound/http_handler/` — Hub mutex+write-deadline pattern; WebsocketSink; WS upgrade handler with read-loop unregister; 5 race-clean tests via httptest+gorilla dialer).
   - **T16 ✅ done** (`query/adapters/outbound/database/` — IntervalRepository.ByMachineRange; overlap query with open-interval support; ASC ordering; 5 integration tests).
-  - Next actionable: **T17** (T8 ✅).
+  - **T17 ✅ done** (`query/adapters/inbound/http_handler/` — GET /availability/{machine}?from&to; validates params, delegates to UseCase, renders JSON; 6 table-driven unit tests).
+  - Next actionable: **T18** (all deps now ✅: T9–T17 complete).
   - Scope: Complex → full pipeline. WS lib locked: **gorilla/websocket**.
   - Note: harness policy = execute inline (no sub-agent spawning unless user asks).
 
