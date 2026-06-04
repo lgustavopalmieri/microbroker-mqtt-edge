@@ -32,7 +32,7 @@ Scaffolding: use `/hexagonal-scaffold` per feature (domain→application(`interf
 | T14 — websocket sink+endpoint | ✅ | T3, T7 | — |
 | T16 — query repo | ✅ | T2, T8 | — |
 | T17 — query handler | ✅ | T8 | — |
-| T18 — wiring + e2e | ⬜ | T9,T10,T11,T12,T13,T14,T16,T17 | — |
+| T18 — wiring + e2e | ✅ | T9,T10,T11,T12,T13,T14,T16,T17 | — |
 | T19 — docs | ⬜ | T18 | — |
 
 **Next up:** T2, T3, T4, T5, or T9 (no unmet deps).

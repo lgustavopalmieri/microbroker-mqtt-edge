@@ -22,7 +22,8 @@
   - **T14 ✅ done** (`live/adapters/outbound/sink/websocket/` + `live/adapters/inbound/http_handler/` — Hub mutex+write-deadline pattern; WebsocketSink; WS upgrade handler with read-loop unregister; 5 race-clean tests via httptest+gorilla dialer).
   - **T16 ✅ done** (`query/adapters/outbound/database/` — IntervalRepository.ByMachineRange; overlap query with open-interval support; ASC ordering; 5 integration tests).
   - **T17 ✅ done** (`query/adapters/inbound/http_handler/` — GET /availability/{machine}?from&to; validates params, delegates to UseCase, renders JSON; 6 table-driven unit tests).
-  - Next actionable: **T18** (all deps now ✅: T9–T17 complete).
+  - **T18 ✅ done** (`cmd/broker/bootstrap/` — buildOEEModules, route registration, engine start, CompositeSink close; `tests/e2e/oee_e2e_test.go` — 3 e2e tests; full gate green).
+  - Next actionable: **T19** (docs).
   - Scope: Complex → full pipeline. WS lib locked: **gorilla/websocket**.
   - Note: harness policy = execute inline (no sub-agent spawning unless user asks).
 
