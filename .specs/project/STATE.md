@@ -13,7 +13,8 @@
   - **T5 ✅ done** (`internal/modules/oee/config/application/` — ShiftStore port, Seed use case, LoadShiftsFromJSON loader, mock, 10 tests).
   - **T6 ✅ done** (`internal/modules/oee/availability/features/ingest-state/application/` — IntervalStore+StateObserver ports, DecodeStateChange, Apply use case, 2 mocks, 13 tests).
   - **T7 ✅ done** (`internal/modules/oee/availability/features/live/application/` — AvailabilitySink+ShiftReader+StateIntervalReader ports, Engine with mutex-protected map, Apply+Start+rehydrate+tick, 3 mocks, 8 race-clean tests). StateTransition moved to avdomain.
-  - Next actionable: **T8, T9** (T8 needs T4 ✅; T9 no deps; T13/T14 need T7 ✅ now unblocked).
+  - **T8 ✅ done** (`internal/modules/oee/availability/features/query/application/` — IntervalReader+ShiftReader ports, Execute use case, 3 flags, 2 mocks, 7 tests; §7 oracle end-to-end).
+  - Next actionable: **T9** (no deps; T16/T17 need T2+T8 ✅ now unblocked).
   - Scope: Complex → full pipeline. WS lib locked: **gorilla/websocket**.
   - Note: harness policy = execute inline (no sub-agent spawning unless user asks).
 
